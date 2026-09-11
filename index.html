@@ -481,6 +481,9 @@ dialog footer .btn:first-child{margin-right:auto}
   const weaponOf = id => WEP[id] || (isShared(id) ? WEP["rover-spectro"] : null);
   const hasSig = id => !state.nosig[GROUP(id)];
   const sigFactor = id => (hasSig(id) || !weaponOf(id)) ? 1 : weaponOf(id).f;
+  // arabwuwa lists a few standard weapons only at a higher refinement; say so
+  // rather than passing the number off as the R1 you would actually hold.
+  const wepNote = w => (w && w.r && w.r !== 1) ? " (listed at R" + w.r + ")" : "";
   function toggleSig(id){
     const g = GROUP(id);
     if (state.nosig[g]) delete state.nosig[g]; else state.nosig[g] = true;
@@ -670,7 +673,7 @@ dialog footer .btn:first-child{margin-right:auto}
               (hasSig(c.i)
                 ? "Has " + weaponOf(c.i).s + " (signature) — click if not"
                 : "No " + weaponOf(c.i).s + ": teams led by them count as " +
-                  Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + ")") +
+                  Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + wepNote(weaponOf(c.i)) + ")") +
               '">&#9876;</button>'
             : "") +
         '</div>' +
@@ -835,7 +838,7 @@ dialog footer .btn:first-child{margin-right:auto}
           '<span class="dps num">' + (match ? "" : "~") + fmt(sc.value) + ' DPS</span>' +
           '<span class="bucket">' + (src.b || "?") + '</span>' +
           (sc.w ? '<span class="wepTag" title="' + BY_ID[lead].n + ' without ' + sc.w.s + ': scaled to ' +
-                  sc.w.b + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
+                  sc.w.b + wepNote(sc.w) + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
           (match
             ? (match.variants > 1 ? '<span class="var">best of ' + match.variants + '</span>' : "")
             : '<span class="var">estimate</span>');
@@ -845,7 +848,7 @@ dialog footer .btn:first-child{margin-right:auto}
             est.variants + " projection team" + (est.variants === 1 ? "" : "s") +
             "; shown is the lowest of them (" + src.n + ").";
         if (sc.w) strip.title += " Scaled to " + Math.round(sc.f * 100) + "% because " + BY_ID[lead].n +
-          " is flagged without " + sc.w.s + " (standard: " + sc.w.b + ").";
+          " is flagged without " + sc.w.s + " (standard: " + sc.w.b + wepNote(sc.w) + ").";
         node.appendChild(strip);
       }
       wrap.appendChild(node);
@@ -1078,7 +1081,7 @@ dialog footer .btn:first-child{margin-right:auto}
           (hasSig(id)
             ? '<span>' + weaponOf(id).s + '</span><i>signature &middot; full damage</i>'
             : '<span>' + weaponOf(id).b + '</span><i>standard &middot; ' +
-              Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + '</i>') +
+              Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + wepNote(weaponOf(id)) + '</i>') +
           '</button>'
         : "") + '</div>' +
       '<a class="btn out" href="https://arabwuwa.com/characters/' + id + '/" target="_blank" rel="noopener">arabwuwa &#8599;</a>';

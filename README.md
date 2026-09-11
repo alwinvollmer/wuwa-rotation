@@ -69,15 +69,16 @@ Two things the script handles that are easy to get wrong by hand:
 
 ### Where the weapon factor comes from
 
-arabwuwa publishes weapon stats (`/data/weapons.json`) and the weapon each projection
-team was calculated with, but its own weapon comparison lives inside the auth-gated
-calculator and is not fetchable. `tools/update-weapons.py` therefore *models* the ratio
-from the public stats: it lays each weapon over a generic endgame carry (flat ATK, ATK%,
-DMG bonus, crit rate and crit damage), counts conditional passives at 60% uptime because
-signatures lean on them and standard weapons barely have any, and treats DEF ignore,
-amplify and RES shred as their own multiplier. The result currently spans 0.72–1.00 with a
-median of 0.89. It is an estimate, and the app presents it as one — adjust `BASE` and
-`CONDITIONAL_UPTIME` in that script if you would rather it read differently.
+Each character page on arabwuwa carries a **Weapon comparison / Relative damage**
+section: weapons at various refinements, scored against that character's signature at
+R1 (= 100%). `tools/update-weapons.py` scrapes those cards from all 60 character pages,
+takes the 100% entry as the signature and the best standard-banner weapon listed as the
+fallback, preferring the R1 row — where only a higher refinement is published (Qingxiao,
+Chisa) the app says so in the tooltip.
+
+37 characters publish a comparison; factors run 0.713–1.000 with a median of 0.825. The
+other 20 — Verina, Shorekeeper, Baizhi, Mortefi and friends — publish none and simply get
+no toggle, which costs nothing because only the lead slot is scaled.
 
 Pushing to `main` redeploys GitHub Pages automatically.
 
