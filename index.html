@@ -156,6 +156,49 @@ button{cursor:pointer; background:none; border:none}
 .teams{display:grid; grid-template-columns:repeat(auto-fill,minmax(258px,1fr)); gap:12px; padding:13px}
 .team{border:1px solid var(--edge); border-radius:var(--r); background:var(--slot); display:flex; flex-direction:column}
 .team.full{border-color:color-mix(in srgb,var(--ok) 45%,var(--edge))}
+
+/* Premium: the teams reserved for the heavy lifting. Gold frame, a filed
+   corner, a crest in the header and one slow pass of light across it. */
+.team{position:relative}
+.team.prem{
+  border-color:color-mix(in srgb,var(--gold) 62%,var(--edge));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 7%,var(--slot)),var(--slot) 120px);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 22%,transparent), 0 10px 26px -18px var(--gold);
+}
+.team.prem::before{                       /* filed top-right corner */
+  content:""; position:absolute; top:-1px; right:-1px; width:16px; height:16px;
+  background:linear-gradient(225deg,var(--gold) 0 48%,transparent 48%);
+  border-top-right-radius:var(--r); pointer-events:none;
+}
+.team.prem > header{
+  position:relative; overflow:hidden;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--gold) 16%,transparent),transparent 72%);
+  border-bottom-color:color-mix(in srgb,var(--gold) 40%,var(--edge));
+}
+.team.prem > header::after{               /* the sheen */
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,color-mix(in srgb,var(--gold) 34%,transparent) 50%,transparent 65%);
+  transform:translateX(-120%); animation:sheen 7s ease-in-out infinite;
+}
+@keyframes sheen{ 0%,72%{transform:translateX(-120%)} 92%,100%{transform:translateX(120%)} }
+@media (prefers-reduced-motion:reduce){ .team.prem > header::after{animation:none; opacity:0} }
+.team.prem h3{color:var(--gold)}
+.team.prem .grip{color:color-mix(in srgb,var(--gold) 60%,var(--ink-faint))}
+.team.prem .slot.filled{border-color:color-mix(in srgb,var(--gold) 45%,var(--el))}
+.team h3{display:flex; align-items:baseline; gap:6px}
+.tagline{
+  font-family:"IBM Plex Mono",monospace; font-size:.54rem; font-weight:700; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--gold); opacity:.85;
+}
+.crest{
+  width:19px; height:19px; line-height:19px; text-align:center; border-radius:2px;
+  color:var(--ink-faint); font-size:.8rem; transition:.14s;
+}
+.crest:hover{color:var(--gold); background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.crest[aria-pressed="true"]{
+  color:var(--ground); background:var(--gold);
+  box-shadow:0 0 10px -2px color-mix(in srgb,var(--gold) 70%,transparent);
+}
 .team > header{display:flex; align-items:center; gap:6px; padding:7px 9px; border-bottom:1px solid var(--edge); cursor:grab}
 .team > header:active{cursor:grabbing}
 .team.dragging{opacity:.35}
@@ -204,6 +247,7 @@ button{cursor:pointer; background:none; border:none}
   font-size:.72rem; color:var(--ink-dim);
 }
 .team .match b{color:var(--cyan); font-weight:600}
+.team.prem .match{background:color-mix(in srgb,var(--gold) 10%,transparent); border-top-color:color-mix(in srgb,var(--gold) 35%,var(--edge))}
 .team .match .dps{color:var(--ink); font-weight:600}
 .team .match .bucket{text-transform:uppercase; letter-spacing:.08em; font-size:.64rem; color:var(--ink-faint)}
 .team .match .var{margin-left:auto; font-size:.64rem; color:var(--ink-faint)}
@@ -412,7 +456,8 @@ dialog footer .btn:first-child{margin-right:auto}
   let sel = null;               // id currently click-selected
   let filt = { q:"", el:new Set(), s:new Set(), owned:false, avail:false };
 
-  function blank(){ return { owned:{}, teams:[[null,null,null],[null,null,null],[null,null,null]], seeded:false }; }
+  function newTeam(c){ return { c: c || [null,null,null], p:false }; }   // declaration: load() runs before any const here
+  function blank(){ return { owned:{}, teams:[newTeam(),newTeam(),newTeam()], seeded:false }; }
   function migrate(s){
     const owned = {};
     for (const [k,v] of Object.entries(s.owned || {})){
@@ -421,22 +466,25 @@ dialog footer .btn:first-child{margin-right:auto}
       if (n > 0) owned[g] = Math.max(owned[g] || 0, Math.min(12, n));
     }
     s.owned = owned;
-    s.teams = (Array.isArray(s.teams) ? s.teams : []).filter(Array.isArray).map(t => {
+    // v1 saved a team as a bare [a,b,c]; it is now { c:[a,b,c], p:premium }.
+    s.teams = (Array.isArray(s.teams) ? s.teams : []).map(t => {
+      const src = Array.isArray(t) ? t : (t && Array.isArray(t.c) ? t.c : null);
+      if (!src) return null;
       const row = [null,null,null], seen = new Set();
       for (let i=0;i<3;i++){
-        const id = t[i];
+        const id = src[i];
         if (!id || !BY_ID[id] || !owned[GROUP(id)] || seen.has(GROUP(id))) continue;
         seen.add(GROUP(id)); row[i] = id;
       }
-      return row;
-    });
-    if (!s.teams.length) s.teams = [[null,null,null]];
+      return { c: row, p: !!(t && t.p) };
+    }).filter(Boolean);
+    if (!s.teams.length) s.teams = [newTeam()];
     for (const g of Object.keys(owned)){            // trim placements beyond the pool
-      const placed = s.teams.reduce((n,t) => n + t.filter(x => GROUP(x) === g).length, 0);
+      const placed = s.teams.reduce((n,t) => n + t.c.filter(x => GROUP(x) === g).length, 0);
       let over = placed - owned[g];
       for (let ti = s.teams.length-1; ti >= 0 && over > 0; ti--)
         for (let i=2;i>=0 && over>0;i--)
-          if (GROUP(s.teams[ti][i]) === g){ s.teams[ti][i] = null; over--; }
+          if (GROUP(s.teams[ti].c[i]) === g){ s.teams[ti].c[i] = null; over--; }
     }
     return s;
   }
@@ -450,7 +498,7 @@ dialog footer .btn:first-child{margin-right:auto}
     } catch(e){}
     const s = blank();
     s.owned = Object.fromEntries(Object.entries(SEED_OWNED).filter(([id]) => BY_ID[id] || GROUP_NAME[id]));
-    s.teams = SEED_TEAMS.map(t => t.map(id => (id && BY_ID[id]) ? id : null));
+    s.teams = SEED_TEAMS.map(t => newTeam(t.map(id => (id && BY_ID[id]) ? id : null)));
     s.seeded = true;
     return s;
   }
@@ -459,7 +507,7 @@ dialog footer .btn:first-child{margin-right:auto}
   // ---- counts ----
   const assignedCount = id => {
     const g = GROUP(id);
-    return state.teams.reduce((n,t) => n + t.filter(x => GROUP(x) === g).length, 0);
+    return state.teams.reduce((n,t) => n + t.c.filter(x => GROUP(x) === g).length, 0);
   };
   const uses = id => state.owned[GROUP(id)] || 0;
   const left = id => uses(id) - assignedCount(id);
@@ -472,14 +520,14 @@ dialog footer .btn:first-child{margin-right:auto}
     n = Math.max(0, Math.min(12, n));
     const placed = assignedCount(id);
     if (n === 0){
-      for (const t of state.teams) for (let i=0;i<3;i++) if (GROUP(t[i]) === g) t[i] = null;
+      for (const t of state.teams) for (let i=0;i<3;i++) if (GROUP(t.c[i]) === g) t.c[i] = null;
       delete state.owned[g];
     } else {
       if (n < placed){                       // drop the surplus from the last teams first
         let over = placed - n;
         for (let ti = state.teams.length-1; ti >= 0 && over > 0; ti--)
           for (let i=2; i>=0 && over>0; i--)
-            if (GROUP(state.teams[ti][i]) === g){ state.teams[ti][i] = null; over--; }
+            if (GROUP(state.teams[ti].c[i]) === g){ state.teams[ti].c[i] = null; over--; }
       }
       state.owned[g] = n;
     }
@@ -487,7 +535,7 @@ dialog footer .btn:first-child{margin-right:auto}
     commit();
   }
   function place(id, ti, si){
-    const team = state.teams[ti];
+    const team = state.teams[ti] && state.teams[ti].c;
     if (!team) return;
     const prev = team[si];
     if (prev === id) return;
@@ -498,7 +546,7 @@ dialog footer .btn:first-child{margin-right:auto}
     commit();
   }
   function move(from, to){
-    const a = state.teams[from.t], b = state.teams[to.t];
+    const a = state.teams[from.t] && state.teams[from.t].c, b = state.teams[to.t] && state.teams[to.t].c;
     if (!a || !b) return;
     const id = a[from.s], other = b[to.s];
     if (!id) return;
@@ -509,8 +557,9 @@ dialog footer .btn:first-child{margin-right:auto}
     b[to.s] = id;
     commit();
   }
-  function clearSlot(ti, si){ state.teams[ti][si] = null; commit(); }
-  function addTeam(){ state.teams.push([null,null,null]); commit(); }
+  function clearSlot(ti, si){ state.teams[ti].c[si] = null; commit(); }
+  function addTeam(){ state.teams.push(newTeam()); commit(); }
+  function togglePremium(ti){ state.teams[ti].p = !state.teams[ti].p; commit(); }
   function moveTeam(from, to){
     if (from === to || from < 0 || to < 0 || from >= state.teams.length || to >= state.teams.length) return;
     const [team] = state.teams.splice(from, 1);
@@ -630,7 +679,7 @@ dialog footer .btn:first-child{margin-right:auto}
     slot.onclick = ev => {
       if (ev.target.closest(".x") || ev.target.closest(".info")) return;
       if (sel){ place(sel, ti, si); return; }
-      const id = state.teams[ti][si];
+      const id = state.teams[ti].c[si];
       if (id){ sel = left(id) > 0 ? id : null; renderGrid(); }
     };
   }
@@ -638,12 +687,16 @@ dialog footer .btn:first-child{margin-right:auto}
   function renderTeams(){
     const wrap = $("#teams");
     wrap.textContent = "";
-    state.teams.forEach((team, ti) => {
+    state.teams.forEach((entry, ti) => {
+      const team = entry.c;
       const filled = team.filter(Boolean);
       const node = document.createElement("article");
-      node.className = "team" + (filled.length === 3 ? " full" : "");
+      node.className = "team" + (filled.length === 3 ? " full" : "") + (entry.p ? " prem" : "");
       const head = document.createElement("header");
-      head.innerHTML = '<i class="grip" aria-hidden="true">&#9782;</i><h3>Team ' + (ti+1) + '</h3><div class="pips"></div>' +
+      head.innerHTML = '<i class="grip" aria-hidden="true">&#9782;</i>' +
+                       '<button class="crest" aria-pressed="' + (entry.p ? "true" : "false") +
+                       '" title="' + (entry.p ? "Premium team — click to unflag" : "Flag as a premium team") + '">&#10022;</button>' +
+                       '<h3>Team ' + (ti+1) + (entry.p ? '<b class="tagline">premium</b>' : "") + '</h3><div class="pips"></div>' +
                        '<button class="mv" data-d="-1" title="Move team earlier" ' + (ti === 0 ? 'disabled' : '') + '>&#8249;</button>' +
                        '<button class="mv" data-d="1" title="Move team later" ' + (ti === state.teams.length-1 ? 'disabled' : '') + '>&#8250;</button>' +
                        '<button class="kill" title="Delete this team">&#10005;</button>';
@@ -669,6 +722,7 @@ dialog footer .btn:first-child{margin-right:auto}
         pips.appendChild(p);
       });
       head.querySelector(".kill").onclick = () => removeTeam(ti);
+      head.querySelector(".crest").onclick = () => togglePremium(ti);
       node.ondragover = ev => {
         if (!ev.dataTransfer.types.includes("application/x-wuwa-team")) return;
         ev.preventDefault();
@@ -779,13 +833,15 @@ dialog footer .btn:first-child{margin-right:auto}
   function renderStats(){
     const owned = Object.keys(state.owned).length;       // keyed by resonator, Rover folded to one
     const charges = Object.values(state.owned).reduce((a,b) => a+b, 0);
-    const placed = state.teams.reduce((n,t) => n + t.filter(Boolean).length, 0);
-    const full = state.teams.filter(t => t.filter(Boolean).length === 3).length;
+    const placed = state.teams.reduce((n,t) => n + t.c.filter(Boolean).length, 0);
+    const full = state.teams.filter(t => t.c.filter(Boolean).length === 3).length;
+    const prem = state.teams.filter(t => t.p).length;
     const rows = [
       ["Resonators", owned, false],
       ["Charges", charges, false],
       ["Placed", placed + "/" + charges, false],
       ["Full teams", full, true],
+      ["Premium", prem, false],
       ["Teams open", state.teams.length - full, false]
     ];
     $("#stats").innerHTML = rows.map(([l,v,hot]) =>
@@ -834,7 +890,7 @@ dialog footer .btn:first-child{margin-right:auto}
   const placedAs = rec => {
     const k = compKey(rec.c);
     for (let i = 0; i < state.teams.length; i++)
-      if (state.teams[i].filter(Boolean).length === 3 && compKey(state.teams[i]) === k) return i + 1;
+      if (state.teams[i].c.filter(Boolean).length === 3 && compKey(state.teams[i].c) === k) return i + 1;
     return 0;
   };
   const fmt = n => n.toLocaleString("en-US");
@@ -873,8 +929,8 @@ dialog footer .btn:first-child{margin-right:auto}
     const last = state.teams[state.teams.length-1];
     const row = rec.c.slice(0,3);
     while (row.length < 3) row.push(null);
-    if (last && last.every(x => !x)) state.teams[state.teams.length-1] = row;
-    else state.teams.push(row);
+    if (last && last.c.every(x => !x)) last.c = row;
+    else state.teams.push(newTeam(row));
     commit();
     renderRecs();
   }
@@ -965,7 +1021,7 @@ dialog footer .btn:first-child{margin-right:auto}
   // ---- tools ----
   $("#btnStartEmpty").onclick = () => { state = blank(); commit(); };
   $("#btnClearTeams").onclick = () => {
-    state.teams = state.teams.map(() => [null,null,null]);
+    state.teams.forEach(t => { t.c = [null,null,null]; });
     sel = null; commit();
   };
   $("#btnReset").onclick = () => {
@@ -974,7 +1030,7 @@ dialog footer .btn:first-child{margin-right:auto}
   };
   const dlg = $("#dlg");
   $("#btnTransfer").onclick = () => {
-    $("#payload").value = JSON.stringify({ owned: state.owned, teams: state.teams });
+    $("#payload").value = JSON.stringify({ owned: state.owned, teams: state.teams });   // teams: [{c,p}]
     dlg.showModal();
   };
   $("#btnClose").onclick = () => dlg.close();

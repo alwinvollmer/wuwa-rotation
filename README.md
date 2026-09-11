@@ -13,6 +13,7 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Team DPS on the board** — a full team whose trio matches the projection gets a strip under its slots with the projection rank, three-rotation DPS and difficulty. Matching ignores slot order and folds the Rover forms together, and where the projection lists the same trio more than once the strongest variant is credited.
 - **Estimated DPS** — with no exact match, a team whose first two slots match a projection team still gets a figure, prefixed `~` and marked **estimate** in amber: the last of the matching teams, i.e. the lowest-ranked, so it reads as a floor rather than a promise. It appears as soon as slots 1 and 2 are filled.
+- **Premium teams** — the crest in a team header flags it as one of your heavy-lifting teams: gold frame, filed corner, `premium` micro-label, gold slot borders and one slow pass of light across the header (suppressed under `prefers-reduced-motion`). A **Premium** tile in the stats row counts them. The flag rides with the team when you reorder, and survives export/import.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
 - **Recommended teams** — the `i` button on any portrait, in the roster *or* in a team slot, opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty. Every team lands in one of three groups, filterable by chips that carry their counts:
   - **On the board** — that exact trio is already placed; the row names which team it is.
@@ -26,8 +27,11 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 State lives in `localStorage` under `wuwa.rotation.v1`:
 
 ```json
-{ "owned": { "camellya": 2 }, "teams": [["camellya", null, null]] }
+{ "owned": { "camellya": 2 }, "teams": [{ "c": ["camellya", null, null], "p": false }] }
 ```
+
+`p` is the premium flag. Saves written before it existed stored each team as a bare
+`["camellya", null, null]`; those are upgraded on load.
 
 The first visit loads an example roster so the board is not empty; **Start empty** wipes it.
 
