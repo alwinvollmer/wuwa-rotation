@@ -184,6 +184,13 @@ button{cursor:pointer; background:none; border:none}
   font-size:.66rem; font-weight:600; padding:2px 4px; text-align:center; background:var(--panel-2);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid color-mix(in srgb,var(--el) 40%,var(--edge));
 }
+.slot .info{
+  position:absolute; top:1px; left:1px; width:17px; height:17px; line-height:17px; text-align:center;
+  font-family:"Chakra Petch",sans-serif; font-size:.72rem; font-weight:700; color:var(--ink);
+  background:var(--shade); backdrop-filter:blur(2px); border-radius:2px; opacity:.55; transition:.1s;
+}
+.slot:hover .info{opacity:1}
+.slot .info:hover{color:var(--ground); background:var(--gold)}
 .slot .x{
   position:absolute; top:1px; right:1px; width:17px; height:17px; border-radius:2px; font-size:.75rem; line-height:1;
   background:var(--shade); color:var(--ink); opacity:0; transition:.1s; backdrop-filter:blur(2px);
@@ -234,14 +241,25 @@ dialog footer .btn:first-child{margin-right:auto}
   border:1px solid var(--edge); border-left:3px solid var(--edge-hi); border-radius:var(--r);
   background:var(--slot); padding:7px 9px;
 }
-.rec.can{border-left-color:var(--ok)}
+.rec.ready{border-left-color:var(--ok)}
+.rec.spent{border-left-color:var(--gold)}
+.rec.missing{border-left-color:var(--edge-hi); opacity:.82}
 .rec .rank{grid-column:1; grid-row:1; font-family:"IBM Plex Mono",monospace; font-size:.78rem; font-weight:600; color:var(--ink-faint); min-width:28px}
-.rec.can .rank{color:var(--ok)}
+.rec.ready .rank{color:var(--ok)}
+.rec.spent .rank{color:var(--gold)}
 .rec .mem{grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; gap:5px}
 .rec .m{display:flex; align-items:center; gap:5px; font-size:.76rem; padding:1px 7px 1px 2px; border:1px solid var(--edge); border-left:2px solid var(--el); border-radius:var(--r); background:var(--panel-2)}
 .rec .m img{width:19px; height:19px; object-fit:cover; object-position:top center; border-radius:2px}
-.rec .m.no{color:var(--ink-faint)}
+.rec .m.no{color:var(--ink-faint); border-style:dashed}
 .rec .m.no img{filter:grayscale(1) brightness(.55)}
+.rec .m.out img{filter:grayscale(.6) brightness(.75)}
+.rec .m .tag{
+  font-style:normal; font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  padding:0 4px; border-radius:2px; background:var(--panel); color:var(--ink-faint);
+}
+.rec .m.out .tag{color:var(--gold)}
+.rec.spent .meta .why{color:var(--gold)}
+.rec.missing .meta .why{color:var(--ink-faint)}
 .rec .meta{grid-column:1/3; grid-row:2; font-size:.72rem; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace}
 .rec .meta .why{color:var(--bad); font-family:"Barlow",sans-serif}
 .rec .act{grid-column:3; grid-row:1/span 2; align-self:center; white-space:nowrap}
@@ -251,8 +269,17 @@ dialog footer .btn:first-child{margin-right:auto}
   .rec{grid-template-columns:auto 1fr}
   .rec .act{grid-column:1/3; grid-row:3; justify-self:start}
 }
-.only{display:flex; align-items:center; gap:7px; font-size:.8rem; color:var(--ink-dim)}
-.only input{accent-color:var(--gold)}
+.tiers{gap:6px}
+.tiers .chip{text-transform:none; letter-spacing:.02em; font-size:.76rem; padding:3px 10px}
+.tiers .chip .n{font-size:.72rem; color:var(--ink-faint); font-weight:700}
+.tiers .chip:disabled{opacity:.4; cursor:default}
+.tiers .chip[aria-pressed="true"]{color:var(--ink)}
+.tiers .tier-ready[aria-pressed="true"]{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 16%,var(--slot))}
+.tiers .tier-ready[aria-pressed="true"] .n{color:var(--ok)}
+.tiers .tier-spent[aria-pressed="true"]{border-color:var(--gold); background:color-mix(in srgb,var(--gold) 16%,var(--slot))}
+.tiers .tier-spent[aria-pressed="true"] .n{color:var(--gold)}
+.tiers .tier-missing[aria-pressed="true"]{border-color:var(--edge-hi); background:var(--panel-2)}
+.tiers .tier-all[aria-pressed="true"]{border-color:var(--cyan); background:color-mix(in srgb,var(--cyan) 14%,var(--slot))}
 .dragging{opacity:.4}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -315,8 +342,8 @@ dialog footer .btn:first-child{margin-right:auto}
 <dialog id="dlgChar">
   <div class="char-head" id="charHead"></div>
   <div class="body">
-    <p id="charIntro">Teams from the arabwuwa.com Team DPS projection, best first.</p>
-    <label class="only"><input type="checkbox" id="onlyBuildable"> Only teams I can field right now</label>
+    <p id="charIntro">Teams from the arabwuwa.com Team DPS projection. Ready-to-place teams come first.</p>
+    <div class="chips tiers" id="tierChips"></div>
     <ol class="recs" id="recs"></ol>
   </div>
   <footer><button class="btn primary" id="charClose">Done</button></footer>
@@ -574,7 +601,7 @@ dialog footer .btn:first-child{margin-right:auto}
       else if (d.id) place(d.id, ti, si);
     };
     slot.onclick = ev => {
-      if (ev.target.closest(".x")) return;
+      if (ev.target.closest(".x") || ev.target.closest(".info")) return;
       if (sel){ place(sel, ti, si); return; }
       const id = state.teams[ti][si];
       if (id){ sel = left(id) > 0 ? id : null; renderGrid(); }
@@ -644,8 +671,10 @@ dialog footer .btn:first-child{margin-right:auto}
           slot.style.setProperty("--el", "var(--el-" + c.e + ")");
           slot.innerHTML = '<figure><img src="' + portrait(id) + '" alt="" draggable="false">' +
                            '<figcaption>' + c.n + '</figcaption></figure>' +
+                           '<button class="info" title="Recommended teams for ' + c.n + '">i</button>' +
                            '<button class="x" title="Remove from team">&#10005;</button>';
           slot.querySelector(".x").onclick = ev => { ev.stopPropagation(); clearSlot(ti, si); };
+          slot.querySelector(".info").onclick = ev => { ev.stopPropagation(); openDetails(id); };
           slot.draggable = true;
           slot.ondragstart = ev => {
             ev.dataTransfer.setData("application/x-wuwa-char", "1");
@@ -719,26 +748,35 @@ dialog footer .btn:first-child{margin-right:auto}
   const RECS = (typeof TEAMS !== "undefined" && Array.isArray(TEAMS)) ? TEAMS : [];
   const fmt = n => n.toLocaleString("en-US");
   let detailId = null;
+  let recFilter = "all";   // all | ready | spent | missing
 
   function recsFor(id){
     const g = GROUP(id);
     return RECS.filter(t => t.c.some(m => GROUP(m) === g));
   }
-  // Can this recommended team be fielded from the charges left right now?
-  function fieldable(rec){
+  // Three tiers, because "I can't build this" has two very different causes:
+  //   ready   — every member owned with a charge to spare, place it now
+  //   spent   — you own the whole team, its charges are just committed elsewhere
+  //   missing — you do not have these resonators at all
+  const names = ids => ids.map(m => BY_ID[m].n).join(", ");
+  function evaluate(rec){
     const need = new Map();
     for (const m of rec.c) need.set(GROUP(m), (need.get(GROUP(m)) || 0) + 1);
     const missing = rec.c.filter(m => !uses(m));
-    if (missing.length) return { ok:false, missing, why: missing.length + " not in your roster" };
-    for (const [g, n] of need){
-      if (n > 1) return { ok:false, missing:[], why:"two Rover forms in one team" };
-      const member = rec.c.find(m => GROUP(m) === g);
-      if (left(member) < n) return { ok:false, missing:[member], why:"no charges left for " + BY_ID[member].n };
-    }
-    return { ok:true, missing:[], why:"" };
+    if (missing.length)
+      return { tier:"missing", missing, spent:[],
+               why:"missing " + names(missing) };
+    if ([...need.values()].some(n => n > 1))
+      return { tier:"missing", missing:[], spent:[], why:"two Rover forms in one team" };
+    const spent = rec.c.filter(m => left(m) <= 0);
+    if (spent.length)
+      return { tier:"spent", missing:[], spent,
+               why:"every charge for " + names(spent) + " is already placed" };
+    return { tier:"ready", missing:[], spent:[], why:"" };
   }
+  const TIER_LABEL = { ready:"Add team", spent:"No charges", missing:"Not owned" };
   function fieldTeam(rec){
-    if (!fieldable(rec).ok) return;
+    if (evaluate(rec).tier !== "ready") return;
     const last = state.teams[state.teams.length-1];
     const row = rec.c.slice(0,3);
     while (row.length < 3) row.push(null);
@@ -748,39 +786,68 @@ dialog footer .btn:first-child{margin-right:auto}
     renderRecs();
   }
 
+  const TIER_ORDER = { ready:0, spent:1, missing:2 };
   function renderRecs(){
     const list = $("#recs");
     list.textContent = "";
-    const onlyOk = $("#onlyBuildable").checked;
-    const all = recsFor(detailId).map(r => ({ r, f: fieldable(r) }));
-    let recs = onlyOk ? all.filter(x => x.f.ok) : all;
-    recs.sort((a,b) => (b.f.ok - a.f.ok) || (a.r.r - b.r.r));
+    const all = recsFor(detailId).map(r => ({ r, f: evaluate(r) }));
+    const count = { all: all.length, ready:0, spent:0, missing:0 };
+    for (const x of all) count[x.f.tier]++;
+    renderTierChips(count);
+
+    let recs = recFilter === "all" ? all : all.filter(x => x.f.tier === recFilter);
+    recs.sort((a,b) => (TIER_ORDER[a.f.tier] - TIER_ORDER[b.f.tier]) || (a.r.r - b.r.r));
+
     if (!recs.length){
       const li = document.createElement("li");
       li.className = "empty";
       li.textContent = !all.length
         ? "No team in the current projection uses " + BY_ID[detailId].n + " yet."
-        : "None of its " + all.length + " team" + (all.length === 1 ? "" : "s") +
-          " can be fielded with the charges you have left.";
+        : recFilter === "ready"
+          ? "No team of theirs can be placed right now — free a charge, or check the other groups."
+          : recFilter === "spent"
+            ? "No team is waiting on charges: the rest need resonators you do not own."
+            : "You own every resonator in all " + all.length + " of these teams.";
       list.appendChild(li);
       return;
     }
     for (const { r, f } of recs){
       const li = document.createElement("li");
-      li.className = "rec" + (f.ok ? " can" : "");
+      li.className = "rec " + f.tier;
       li.innerHTML = '<div class="rank">#' + r.r + '</div>' +
         '<div class="mem">' + r.c.map(m => {
           const c = BY_ID[m];
-          const owned = uses(m) > 0 && left(m) > 0;
-          return '<span class="m' + (owned ? "" : " no") + '" style="--el:var(--el-' + c.e + ')">' +
-                 '<img src="' + img(m) + '" alt="" loading="lazy">' + c.n + '</span>';
+          const state = !uses(m) ? " no" : (left(m) <= 0 ? " out" : "");
+          return '<span class="m' + state + '" style="--el:var(--el-' + c.e + ')">' +
+                 '<img src="' + img(m) + '" alt="" loading="lazy">' + c.n +
+                 (state === " no" ? '<i class="tag">not owned</i>' : "") +
+                 (state === " out" ? '<i class="tag">0 left</i>' : "") + '</span>';
         }).join("") + '</div>' +
-        '<button class="btn act"' + (f.ok ? "" : " disabled") + '>' + (f.ok ? "Add team" : "&mdash;") + '</button>' +
+        '<button class="btn act"' + (f.tier === "ready" ? "" : " disabled") + '>' + TIER_LABEL[f.tier] + '</button>' +
         '<div class="meta">' + fmt(r.d) + ' DPS &middot; ' + (r.b || "?") +
-        (f.ok ? "" : ' &middot; <span class="why">' + f.why + '</span>') + '</div>';
-      const btn = li.querySelector(".act");
-      if (f.ok) btn.onclick = () => fieldTeam(r);
+        (f.why ? ' &middot; <span class="why">' + f.why + '</span>' : "") + '</div>';
+      if (f.tier === "ready") li.querySelector(".act").onclick = () => fieldTeam(r);
       list.appendChild(li);
+    }
+  }
+
+  const TIERS = [
+    ["all", "All"],
+    ["ready", "Ready now"],
+    ["spent", "Needs a charge"],
+    ["missing", "Missing units"]
+  ];
+  function renderTierChips(count){
+    const box = $("#tierChips");
+    box.textContent = "";
+    for (const [key, label] of TIERS){
+      const b = document.createElement("button");
+      b.className = "chip tier-" + key;
+      b.setAttribute("aria-pressed", recFilter === key);
+      b.disabled = key !== "all" && !count[key];
+      b.innerHTML = label + ' <b class="n num">' + count[key] + '</b>';
+      b.onclick = () => { recFilter = key; renderRecs(); };
+      box.appendChild(b);
     }
   }
 
@@ -798,7 +865,6 @@ dialog footer .btn:first-child{margin-right:auto}
     $("#dlgChar").showModal();
   }
   $("#charClose").onclick = () => $("#dlgChar").close();
-  $("#onlyBuildable").onchange = renderRecs;
 
   // ---- tools ----
   $("#btnStartEmpty").onclick = () => { state = blank(); commit(); };

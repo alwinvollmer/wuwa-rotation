@@ -12,7 +12,10 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Teams** — three slots each. Drag a portrait from the roster into a slot, drag a slot onto another slot to swap, or click a portrait and then click a slot (works on touch). A resonator cannot appear twice in one team, and cannot be placed with no charges left.
 - **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
-- **Recommended teams** — the `i` button on any portrait opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty, with members you cannot field greyed out and the reason spelled out. Teams you *can* field sort to the top and have a one-click **Add team** that places them on the board and spends the charges.
+- **Recommended teams** — the `i` button on any portrait, in the roster *or* in a team slot, opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty. Every team lands in one of three groups, filterable by chips that carry their counts:
+  - **Ready now** — you own all three with a charge to spare; one click on **Add team** places it and spends the charges.
+  - **Needs a charge** — you own the whole team, but its charges are committed to teams already on the board; free one and it moves up.
+  - **Missing units** — you do not have these resonators, named individually on the member chips.
 - **Charges left** — everything owned but not yet placed, so you can see what is still spendable.
 - **Filters** — search, element, rarity, owned only, has charges.
 - **Export / Import** — a JSON payload you can copy to another browser.
