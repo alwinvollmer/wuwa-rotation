@@ -385,6 +385,10 @@ dialog footer .btn:first-child{margin-right:auto}
 .wepline[aria-pressed="false"]{border-left-color:var(--bad)}
 .wepline[aria-pressed="false"] .mark{color:var(--bad)}
 .wepline[aria-pressed="false"] i{color:var(--bad)}
+.wepline.none{
+  border-left-color:var(--edge-hi); color:var(--ink-faint); font-size:.74rem; cursor:default;
+}
+.seqNone{margin:0; font-size:.76rem; color:var(--ink-faint)}
 .recs{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; max-height:52vh; overflow-y:auto}
 .rec{
   animation:rise .28s ease-out both;
@@ -1244,15 +1248,15 @@ dialog footer .btn:first-child{margin-right:auto}
       '<div><h2>' + c.n + '</h2><p>' + c.s + '&#9733; &middot; ' + c.e + ' &middot; ' + c.w + ' &middot; ' +
       (n ? rest + " of " + n + " charge" + (n === 1 ? "" : "s") + " left" : "not in your roster") +
       (isShared(id) ? " (Rover shares one pool)" : "") + '</p>' +
-      (weaponOf(id)
-        ? '<button class="wepline" id="wepToggle" aria-pressed="' + (hasSig(id) ? "true" : "false") + '">' +
+      (!weaponOf(id)
+        ? '<p class="wepline none">arabwuwa publishes no weapon comparison for ' + c.n + ' yet</p>'
+        : '<button class="wepline" id="wepToggle" aria-pressed="' + (hasSig(id) ? "true" : "false") + '">' +
           '<span class="mark">&#9876;</span>' +
           (hasSig(id)
             ? '<span>' + weaponOf(id).s + '</span><i>signature &middot; full damage</i>'
             : '<span>' + weaponOf(id).b + wepNote(weaponOf(id)) + '</span><i>' + wepKind(weaponOf(id)) +
               ' &middot; ' + Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + '</i>') +
-          '</button>'
-        : "") + '</div>' +
+          '</button>') + '</div>' +
       '<a class="btn out" href="https://arabwuwa.com/characters/' + id + '/" target="_blank" rel="noopener">arabwuwa &#8599;</a>';
     const wt = $("#wepToggle");
     if (wt) wt.onclick = () => { toggleSig(id); openDetails(id); };
@@ -1264,8 +1268,14 @@ dialog footer .btn:first-child{margin-right:auto}
     const box = $("#seqRow");
     const d = seqOf(id);
     box.textContent = "";
-    box.hidden = !d;
-    if (!d) return;
+    box.hidden = false;
+    if (!d){
+      const p = document.createElement("p");
+      p.className = "seqNone";
+      p.textContent = "No sequence damage chart published for " + BY_ID[id].n + " yet — teams they lead are not scaled.";
+      box.appendChild(p);
+      return;
+    }
     const base = d.s0 || 0;
     const label = document.createElement("span");
     label.className = "seqLabel";
