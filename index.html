@@ -7,7 +7,7 @@
   --ink:#e2e8f0; --ink-dim:#93a1b3; --ink-faint:#64748b;
   --gold:#e0ae5b; --gold-deep:#b8862f; --cyan:#3fb6c2;
   --ok:#4ec98c; --warn:#e0ae5b; --bad:#e0635a;
-  --slot:#10161d; --shade:rgba(0,0,0,.45);
+  --slot:#10161d; --shade:rgba(0,0,0,.62);
   --el-glacio:#58b8ea; --el-fusion:#ef6a52; --el-electro:#a97ae8; --el-aero:#3fc98f; --el-spectro:#e8d158; --el-havoc:#d9679a;
   --r:3px;
 }
@@ -16,16 +16,25 @@
     --ground:#eceef1; --panel:#f7f8fa; --panel-2:#eef0f4; --edge:#d3d8e0; --edge-hi:#b6bfcb;
     --ink:#1a2230; --ink-dim:#4d5a6b; --ink-faint:#7c8798;
     --gold:#9a6d16; --gold-deep:#c79a45; --cyan:#1d7f8a;
-    --slot:#e4e7ec; --shade:rgba(20,30,45,.12);
+    --slot:#e4e7ec; --shade:rgba(20,30,45,.18);
   }
 }
 :root[data-theme="light"]{
   --ground:#eceef1; --panel:#f7f8fa; --panel-2:#eef0f4; --edge:#d3d8e0; --edge-hi:#b6bfcb;
   --ink:#1a2230; --ink-dim:#4d5a6b; --ink-faint:#7c8798;
   --gold:#9a6d16; --gold-deep:#c79a45; --cyan:#1d7f8a;
-  --slot:#e4e7ec; --shade:rgba(20,30,45,.12);
+  --slot:#e4e7ec; --shade:rgba(20,30,45,.18);
 }
 *{box-sizing:border-box}
+/* One fixed layer behind everything: a scrolling body background with
+   background-attachment:fixed repaints the whole viewport every frame, which
+   is what made tall windows stutter. */
+body::before{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(120vw 60vh at 12% -10%, color-mix(in srgb,var(--cyan) 9%,transparent), transparent 60%),
+    radial-gradient(90vw 50vh at 96% 4%, color-mix(in srgb,var(--gold) 8%,transparent), transparent 62%);
+}
 @keyframes rise{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
 @keyframes pop{0%{transform:scale(.88); filter:brightness(1.6)} 60%{transform:scale(1.03)} 100%{transform:none; filter:none}}
 @keyframes bump{0%{transform:translateY(0)} 35%{transform:translateY(-4px)} 100%{transform:translateY(0)}}
@@ -34,11 +43,7 @@
 @keyframes sweep{from{transform:scaleX(0)} to{transform:scaleX(1)}}
 @keyframes modalIn{from{opacity:0; transform:translateY(14px) scale(.985)} to{opacity:1; transform:none}}
 body{
-  background:
-    radial-gradient(120vw 60vh at 12% -10%, color-mix(in srgb,var(--cyan) 9%,transparent), transparent 60%),
-    radial-gradient(90vw 50vh at 96% 4%, color-mix(in srgb,var(--gold) 8%,transparent), transparent 62%),
-    var(--ground);
-  background-attachment:fixed;
+  background:var(--ground);
   color:var(--ink);
   font-family:"Barlow",system-ui,sans-serif; font-size:15px; line-height:1.45;
   padding-block:0; padding-left:0; padding-right:0;
@@ -53,7 +58,6 @@ button{cursor:pointer; background:none; border:none}
 .topbar{
   position:sticky; top:0; z-index:30;
   background:var(--panel);
-  backdrop-filter:blur(8px);
   border-bottom:1px solid var(--edge);
   box-shadow:0 14px 24px -22px #000, 0 1px 0 0 color-mix(in srgb,var(--gold) 12%,transparent) inset;
   padding:14px 16px 12px;
@@ -146,18 +150,18 @@ button{cursor:pointer; background:none; border:none}
 .card.spent .port img{filter:grayscale(.9) brightness(.45)}
 .card .rar{
   position:absolute; top:0; left:0; padding:1px 5px; font-size:.62rem; font-weight:700;
-  font-family:"IBM Plex Mono",monospace; background:var(--shade); color:var(--ink-dim); backdrop-filter:blur(2px);
+  font-family:"IBM Plex Mono",monospace; background:var(--shade); color:var(--ink-dim);
 }
 .card.s5 .rar{color:var(--gold)}
 .card .el{position:absolute; top:0; right:0; width:0; height:0; border-top:16px solid var(--el); border-left:16px solid transparent}
 .card .left{
   position:absolute; bottom:26px; right:3px; font-family:"IBM Plex Mono",monospace; font-size:.68rem; font-weight:600;
-  padding:0 5px; border-radius:2px; background:var(--shade); color:var(--ok); backdrop-filter:blur(2px);
+  padding:0 5px; border-radius:2px; background:var(--shade); color:var(--ok);
 }
 .card.spent .left{color:var(--bad)}
 .card .shared{
   position:absolute; bottom:0; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
-  letter-spacing:.08em; text-transform:uppercase; background:var(--shade); color:var(--cyan); backdrop-filter:blur(2px);
+  letter-spacing:.08em; text-transform:uppercase; background:var(--shade); color:var(--cyan);
 }
 .steps{display:flex; align-items:center; border-top:1px solid var(--edge); background:var(--panel-2)}
 .steps button{flex:0 0 22px; height:21px; font-size:.85rem; line-height:1; color:var(--ink-faint); font-weight:700}
@@ -165,20 +169,20 @@ button{cursor:pointer; background:none; border:none}
 .card .info{
   position:absolute; bottom:0; right:0; width:19px; height:19px; line-height:19px; text-align:center;
   font-family:"Chakra Petch",sans-serif; font-size:.72rem; font-weight:700; color:var(--ink-dim);
-  background:var(--shade); backdrop-filter:blur(2px); border-top-left-radius:var(--r);
+  background:var(--shade); border-top-left-radius:var(--r);
 }
 .card .info:hover{color:var(--ground); background:var(--gold)}
 .card .seq{
   position:absolute; top:17px; left:0; min-width:19px; height:17px; line-height:17px; padding:0 4px;
   font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:700; color:var(--ink-dim);
-  background:var(--shade); backdrop-filter:blur(2px); border-bottom-right-radius:var(--r);
+  background:var(--shade); border-bottom-right-radius:var(--r);
 }
 .card .seq:not(.s0){color:var(--cyan)}
 .card .seq.s6{color:var(--ground); background:var(--cyan)}
 .card .seq:hover{color:var(--ground); background:var(--cyan)}
 .card .sig{
   position:absolute; top:34px; left:0; width:19px; height:17px; line-height:17px; text-align:center;
-  font-size:.68rem; color:var(--gold); background:var(--shade); backdrop-filter:blur(2px);
+  font-size:.68rem; color:var(--gold); background:var(--shade);
   border-bottom-right-radius:var(--r);
 }
 .card .sig[aria-pressed="false"]{color:var(--ink-faint)}
@@ -272,13 +276,13 @@ button{cursor:pointer; background:none; border:none}
 .slot .info{
   position:absolute; top:1px; left:1px; width:17px; height:17px; line-height:17px; text-align:center;
   font-family:"Chakra Petch",sans-serif; font-size:.72rem; font-weight:700; color:var(--ink);
-  background:var(--shade); backdrop-filter:blur(2px); border-radius:2px; opacity:.55; transition:.1s;
+  background:var(--shade); border-radius:2px; opacity:.55; transition:.1s;
 }
 .slot:hover .info{opacity:1}
 .slot .info:hover{color:var(--ground); background:var(--gold)}
 .slot .x{
   position:absolute; top:1px; right:1px; width:17px; height:17px; border-radius:2px; font-size:.75rem; line-height:1;
-  background:var(--shade); color:var(--ink); opacity:0; transition:.1s; backdrop-filter:blur(2px);
+  background:var(--shade); color:var(--ink); opacity:0; transition:.1s;
 }
 .slot:hover .x{opacity:1}
 .slot .x:hover{background:var(--bad); color:#fff}
