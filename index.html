@@ -26,8 +26,20 @@
   --slot:#e4e7ec; --shade:rgba(20,30,45,.12);
 }
 *{box-sizing:border-box}
+@keyframes rise{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+@keyframes pop{0%{transform:scale(.88); filter:brightness(1.6)} 60%{transform:scale(1.03)} 100%{transform:none; filter:none}}
+@keyframes bump{0%{transform:translateY(0)} 35%{transform:translateY(-4px)} 100%{transform:translateY(0)}}
+@keyframes ringpulse{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 45%,transparent) inset}
+                     50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 85%,transparent) inset, 0 0 14px -4px var(--gold)}}
+@keyframes sweep{from{transform:scaleX(0)} to{transform:scaleX(1)}}
+@keyframes modalIn{from{opacity:0; transform:translateY(14px) scale(.985)} to{opacity:1; transform:none}}
 body{
-  background:var(--ground); color:var(--ink);
+  background:
+    radial-gradient(120vw 60vh at 12% -10%, color-mix(in srgb,var(--cyan) 9%,transparent), transparent 60%),
+    radial-gradient(90vw 50vh at 96% 4%, color-mix(in srgb,var(--gold) 8%,transparent), transparent 62%),
+    var(--ground);
+  background-attachment:fixed;
+  color:var(--ink);
   font-family:"Barlow",system-ui,sans-serif; font-size:15px; line-height:1.45;
   padding-block:0; padding-left:0; padding-right:0;
 }
@@ -51,6 +63,7 @@ button{cursor:pointer; background:none; border:none}
 .brand p{margin:0; font-size:.8rem; color:var(--ink-faint); letter-spacing:.02em}
 .stats{display:flex; flex-wrap:wrap; gap:2px}
 .stat{padding:2px 12px; border-left:1px solid var(--edge); display:flex; flex-direction:column; min-width:74px}
+.stat.bump b{animation:bump .45s cubic-bezier(.2,.7,.3,1)}
 .stat b{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:1.15rem; font-weight:600; line-height:1.15}
 .stat span{font-size:.66rem; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-faint)}
 .stat.hot b{color:var(--gold)}
@@ -60,19 +73,12 @@ button{cursor:pointer; background:none; border:none}
   padding:6px 13px; border-radius:var(--r); font-size:.78rem; font-weight:600;
   text-transform:uppercase; letter-spacing:.08em; transition:.12s;
 }
-.btn:hover{color:var(--ink); border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%,var(--panel-2))}
+.btn:hover{color:var(--ink); border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%,var(--panel-2));
+  box-shadow:0 0 14px -6px var(--gold)}
+.btn:active{transform:translateY(1px)}
 .btn.primary{color:var(--ground); background:var(--gold); border-color:var(--gold)}
 .btn.primary:hover{background:var(--gold-deep); border-color:var(--gold-deep); color:#fff}
 .btn.danger:hover{border-color:var(--bad); color:var(--bad); background:color-mix(in srgb,var(--bad) 10%,var(--panel-2))}
-
-/* ---------- notice ---------- */
-.notice{
-  margin:12px 16px 0; padding:9px 13px; border:1px solid var(--edge-hi); border-left:3px solid var(--gold);
-  background:color-mix(in srgb,var(--gold) 7%,var(--panel)); border-radius:var(--r);
-  display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:.85rem; color:var(--ink-dim);
-}
-.notice b{color:var(--ink)}
-.notice .btn{margin-left:auto}
 
 /* ---------- workspace ---------- */
 .workspace{display:grid; grid-template-columns:minmax(330px,30vw) 1fr; gap:16px; padding:16px; align-items:start}
@@ -103,6 +109,10 @@ button{cursor:pointer; background:none; border:none}
 }
 .chip .dot{width:7px; height:7px; border-radius:50%; background:var(--c,var(--ink-faint))}
 .chip[aria-pressed="true"]{color:var(--ink); border-color:var(--c,var(--gold)); background:color-mix(in srgb,var(--c,var(--gold)) 16%,var(--slot))}
+.boot .panel{animation:rise .45s cubic-bezier(.2,.7,.3,1) both}
+.boot .panel:nth-of-type(2){animation-delay:.06s}
+.boot .card{animation:rise .4s cubic-bezier(.2,.7,.3,1) both; animation-delay:calc(var(--i,0) * 9ms + .1s)}
+.boot .team{animation:rise .4s cubic-bezier(.2,.7,.3,1) both; animation-delay:calc(var(--i,0) * 55ms + .12s)}
 .grid{
   overflow-y:auto; padding:11px 13px 14px;
   display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); grid-auto-rows:max-content; gap:9px; align-content:start;
@@ -121,8 +131,16 @@ button{cursor:pointer; background:none; border:none}
 .card.own .name{color:var(--ink)}
 .card::after{content:""; position:absolute; inset:0; border:1px solid transparent; pointer-events:none; border-radius:var(--r)}
 .card.own::after{border-color:color-mix(in srgb,var(--el) 55%,transparent)}
-.card.sel::after{border-color:var(--gold); box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 45%,transparent) inset}
-.card.own:hover{transform:translateY(-1px)}
+.card.sel::after{border-color:var(--gold); animation:ringpulse 1.6s ease-in-out infinite}
+.card{transition:transform .16s cubic-bezier(.2,.7,.3,1), box-shadow .16s, border-color .16s}
+.card.own:hover{
+  transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--el) 70%,var(--edge));
+  box-shadow:0 12px 22px -16px var(--el), 0 0 0 1px color-mix(in srgb,var(--el) 25%,transparent);
+}
+.card.own:hover .port img{transform:scale(1.05)}
+.card .port img{transition:transform .35s cubic-bezier(.2,.7,.3,1), filter .2s}
+.card:active{transform:translateY(-1px) scale(.99)}
 .card.spent .port img{filter:grayscale(.9) brightness(.45)}
 .card .rar{
   position:absolute; top:0; left:0; padding:1px 5px; font-size:.62rem; font-weight:700;
@@ -136,7 +154,7 @@ button{cursor:pointer; background:none; border:none}
 }
 .card.spent .left{color:var(--bad)}
 .card .shared{
-  position:absolute; bottom:0; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
+  position:absolute; bottom:19px; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
   letter-spacing:.08em; text-transform:uppercase; background:var(--shade); color:var(--cyan); backdrop-filter:blur(2px);
 }
 .steps{display:flex; align-items:center; border-top:1px solid var(--edge); background:var(--panel-2)}
@@ -239,6 +257,10 @@ button{cursor:pointer; background:none; border:none}
 .slot.over{border-color:var(--gold); border-style:solid; background:color-mix(in srgb,var(--gold) 18%,var(--panel-2))}
 .slot.deny{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 14%,var(--panel-2))}
 .slot.filled{border-style:solid; border-color:color-mix(in srgb,var(--el) 50%,var(--edge)); background:var(--slot)}
+.slot.filled:hover img{transform:scale(1.04)}
+.slot img{transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+.slot.pop{animation:pop .38s cubic-bezier(.2,.7,.3,1)}
+.slot.over{transform:scale(1.02)}
 .slot figure{margin:0; width:100%; height:100%; display:flex; flex-direction:column}
 .slot img{width:100%; flex:1; object-fit:cover; object-position:top center; min-height:0}
 .slot figcaption{
@@ -258,7 +280,14 @@ button{cursor:pointer; background:none; border:none}
 }
 .slot:hover .x{opacity:1}
 .slot .x:hover{background:var(--bad); color:#fff}
+.team .match > *{animation:rise .3s ease-out both}
+.team .match::before{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+  background:linear-gradient(90deg,var(--cyan),transparent);
+  transform-origin:left; animation:sweep .5s ease-out both;
+}
 .team .match{
+  position:relative; overflow:hidden;
   display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;
   padding:5px 9px; border-top:1px solid var(--edge);
   background:color-mix(in srgb,var(--cyan) 9%,transparent);
@@ -280,6 +309,10 @@ button{cursor:pointer; background:none; border:none}
 }
 .team .match .seqTag.up{color:var(--cyan); border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent)}
 .team .match .seqTag.down{color:var(--bad); border:1px solid color-mix(in srgb,var(--bad) 40%,transparent)}
+.team .match .swapTag{
+  font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; color:var(--ink-faint);
+  border:1px dashed var(--edge-hi); border-radius:2px; padding:0 4px;
+}
 .team .match.est{
   background:color-mix(in srgb,var(--gold) 9%,transparent);
   border-top-style:dashed; border-top-color:color-mix(in srgb,var(--gold) 45%,var(--edge));
@@ -309,6 +342,8 @@ button{cursor:pointer; background:none; border:none}
 .bench .b span{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--gold)}
 
 /* ---------- modal ---------- */
+dialog[open]{animation:modalIn .26s cubic-bezier(.2,.7,.3,1)}
+dialog::backdrop{animation:rise .2s ease-out}
 dialog{
   border:1px solid var(--edge-hi); border-radius:var(--r); background:var(--panel); color:var(--ink);
   max-width:min(560px,92vw); width:100%; padding:0;
@@ -343,11 +378,14 @@ dialog footer .btn:first-child{margin-right:auto}
 .wepline[aria-pressed="false"] i{color:var(--bad)}
 .recs{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; max-height:52vh; overflow-y:auto}
 .rec{
+  animation:rise .28s ease-out both;
+  transition:border-color .15s, transform .15s;
   display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
   border:1px solid var(--edge); border-left:3px solid var(--edge-hi); border-radius:var(--r);
   background:var(--slot); padding:7px 9px;
 }
 .rec.placed{border-left-color:var(--cyan); background:color-mix(in srgb,var(--cyan) 7%,var(--slot))}
+.rec:hover{transform:translateX(2px)}
 .rec.ready{border-left-color:var(--ok)}
 .rec.spent{border-left-color:var(--gold)}
 .rec.missing{border-left-color:var(--edge-hi); opacity:.82}
@@ -399,7 +437,10 @@ dialog footer .btn:first-child{margin-right:auto}
 .tiers .tier-placed[aria-pressed="true"]{border-color:var(--cyan); background:color-mix(in srgb,var(--cyan) 16%,var(--slot))}
 .tiers .tier-placed[aria-pressed="true"] .n{color:var(--cyan)}
 .dragging{opacity:.4}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important; animation:none!important}
+  .boot .card,.boot .team,.boot .panel,.rec,.team .match > *,.team .match::before{opacity:1!important; transform:none!important}
+}
 </style>
 
 <div class="topbar">
@@ -413,11 +454,6 @@ dialog footer .btn:first-child{margin-right:auto}
     <button class="btn danger" id="btnClearTeams">Clear teams</button>
     <button class="btn danger" id="btnReset">Reset all</button>
   </div>
-</div>
-
-<div class="notice" id="notice" hidden>
-  <b>Example roster loaded.</b> Ten resonators with charges and two starter teams, so the board is not empty. Wipe it and enter your own.
-  <button class="btn primary" id="btnStartEmpty">Start empty</button>
 </div>
 
 <div class="workspace">
@@ -638,6 +674,7 @@ dialog footer .btn:first-child{margin-right:auto}
     if (hasGroup(team, id, si)) return;      // no duplicate (and only one Rover form) per team
     if (left(id) <= 0 && GROUP(prev) !== GROUP(id)) return;
     team[si] = id;
+    justPlaced = { t: ti, s: si };
     if (sel === id && left(id) <= 0) sel = null;
     commit();
   }
@@ -651,6 +688,7 @@ dialog footer .btn:first-child{margin-right:auto}
     if (other && hasGroup(a, other, from.t === to.t ? to.s : from.s) && GROUP(a[from.s]) !== GROUP(other)) return;
     a[from.s] = other || null;
     b[to.s] = id;
+    justPlaced = { t: to.t, s: to.s };
     commit();
   }
   function clearSlot(ti, si){ state.teams[ti].c[si] = null; commit(); }
@@ -712,6 +750,7 @@ dialog footer .btn:first-child{margin-right:auto}
       const card = document.createElement("div");
       card.className = "card" + (own ? " own" : "") + (own && rest <= 0 ? " spent" : "") + (sel === c.i ? " sel" : "") + " s" + c.s;
       card.style.setProperty("--el", "var(--el-" + c.e + ")");
+      card.style.setProperty("--i", g.childElementCount);
       card.innerHTML =
         '<div class="port">' +
           '<img src="' + portrait(c.i) + '" alt="" loading="lazy" draggable="false">' +
@@ -805,6 +844,7 @@ dialog footer .btn:first-child{margin-right:auto}
       const filled = team.filter(Boolean);
       const node = document.createElement("article");
       node.className = "team" + (filled.length === 3 ? " full" : "") + (entry.p ? " prem" : "");
+      node.style.setProperty("--i", ti);
       const head = document.createElement("header");
       head.innerHTML = '<i class="grip" aria-hidden="true">&#9782;</i>' +
                        '<button class="crest" aria-pressed="' + (entry.p ? "true" : "false") +
@@ -880,6 +920,7 @@ dialog footer .btn:first-child{margin-right:auto}
         } else {
           slot.innerHTML = '<span class="ph">empty</span>';
         }
+        if (justPlaced && justPlaced.t === ti && justPlaced.s === si && id) slot.classList.add("pop");
         slotDnD(slot, ti, si);
         slots.appendChild(slot);
       });
@@ -889,7 +930,8 @@ dialog footer .btn:first-child{margin-right:auto}
       const lead = team[0];
       if (match || est){
         const src = match ? match.best : est.rec;
-        const sc = scaled(src.d, lead);
+        const swapped = !match && (!team[2] || GROUP(team[2]) !== GROUP(src.c[2]));
+        const sc = scaled(src.d, lead, swapped);
         const strip = document.createElement("div");
         strip.className = "match" + (match ? "" : " est") + (sc.w ? " wep" : "");
         strip.innerHTML = '<b class="num">#' + src.r + '</b>' +
@@ -900,8 +942,11 @@ dialog footer .btn:first-child{margin-right:auto}
           (sc.s !== null ? '<span class="seqTag ' + (sc.q >= 1 ? "up" : "down") + '" title="' + BY_ID[lead].n +
                   ' at S' + sc.s + ' — ' + Math.round(sc.q * 100) + '% of the projection, which calculates them at S' +
                   ((seqOf(lead) || {}).s0 || 0) + '">S' + sc.s + ' ' + Math.round(sc.q * 100) + '%</span>' : "") +
+          (sc.p < 1 ? '<span class="swapTag" title="Third slot differs from the projection\'s: a flat ' +
+                  Math.round((1 - SWAP_PENALTY) * 100) + '% comes off">&minus;' +
+                  Math.round((1 - SWAP_PENALTY) * 100) + '%</span>' : "") +
           (match
-            ? (match.variants > 1 ? '<span class="var">best of ' + match.variants + '</span>' : "")
+            ? (match.variants > 1 ? '<span class="var">' + (match.mid ? "mid of " : "best of ") + match.variants + '</span>' : "")
             : '<span class="var">estimate</span>');
         strip.title = match
           ? src.n + " — Team DPS projection, average of three rotations"
@@ -914,6 +959,7 @@ dialog footer .btn:first-child{margin-right:auto}
       }
       wrap.appendChild(node);
     });
+    justPlaced = null;
     const add = document.createElement("button");
     add.className = "addteam"; add.textContent = "+ Add team";
     add.onclick = addTeam;
@@ -948,6 +994,7 @@ dialog footer .btn:first-child{margin-right:auto}
     }
   }
 
+  const lastStats = {};
   function renderStats(){
     const owned = Object.keys(state.owned).length;       // keyed by resonator, Rover folded to one
     const charges = Object.values(state.owned).reduce((a,b) => a+b, 0);
@@ -963,10 +1010,12 @@ dialog footer .btn:first-child{margin-right:auto}
       ["Teams open", state.teams.length - full, false]
     ];
     $("#stats").innerHTML = rows.map(([l,v,hot]) =>
-      '<div class="stat' + (hot ? " hot" : "") + '"><b>' + v + '</b><span>' + l + '</span></div>').join("");
+      '<div class="stat' + (hot ? " hot" : "") + (lastStats[l] !== undefined && lastStats[l] !== String(v) ? " bump" : "") +
+      '"><b>' + v + '</b><span>' + l + '</span></div>').join("");
+    rows.forEach(([l,v]) => { lastStats[l] = String(v); });
   }
 
-  function render(){ renderStats(); renderGrid(); renderTeams(); renderBench(); $("#notice").hidden = !state.seeded; refreshDetails(); }
+  function render(){ renderStats(); renderGrid(); renderTeams(); renderBench(); refreshDetails(); }
 
   // ---- recommended teams ----
   const RECS = (typeof TEAMS !== "undefined" && Array.isArray(TEAMS)) ? TEAMS : [];
@@ -980,6 +1029,12 @@ dialog footer .btn:first-child{margin-right:auto}
     RECS_BY_KEY.get(k).push(t);
   });
   RECS_BY_KEY.forEach(list => list.sort((a,b) => b.d - a.d));
+  // The projection often runs the same trio at several difficulties. "mid" is the
+  // honest middle - the run you can actually expect - so it wins when offered.
+  const preferMid = list => {
+    const mid = list.filter(t => t.b === "mid");
+    return mid.length ? mid : list;
+  };
   // Slots 1+2 alone already pin most of a team's damage, so when the full trio
   // is not in the projection we fall back to whatever the pair can tell us.
   const PAIR_BY_KEY = new Map();
@@ -995,7 +1050,9 @@ dialog footer .btn:first-child{margin-right:auto}
     const filled = team.filter(Boolean);
     if (filled.length !== 3) return null;
     const list = RECS_BY_KEY.get(compKey(team));
-    return list ? { best: list[0], variants: list.length } : null;
+    if (!list) return null;
+    const pool = preferMid(list);
+    return { best: pool[0], variants: list.length, mid: pool[0].b === "mid" };
   }
   // Estimate: the LAST projection team sharing this team's first two slots —
   // the lowest-ranked of them, so the number reads as a floor, not a promise.
@@ -1003,7 +1060,8 @@ dialog footer .btn:first-child{margin-right:auto}
     if (!team[0] || !team[1]) return null;
     const list = PAIR_BY_KEY.get(GROUP(team[0]) + "|" + GROUP(team[1]));
     if (!list || !list.length) return null;
-    return { rec: list[list.length-1], variants: list.length };
+    const pool = preferMid(list);
+    return { rec: pool[pool.length-1], variants: list.length, mid: pool[0].b === "mid" };
   }
   const placedAs = rec => {
     const k = compKey(rec.c);
@@ -1013,18 +1071,23 @@ dialog footer .btn:first-child{margin-right:auto}
   };
   const fmt = n => Math.round(n).toLocaleString("en-US");
   // The lead slot carries the damage, so that is the one whose weapon we apply.
-  function scaled(dps, leadId){
+  // A team whose third slot is not the one the projection ran loses a flat 5%:
+  // the support slot is worth something, just not enough to model per character.
+  const SWAP_PENALTY = 0.95;
+  function scaled(dps, leadId, swapped){
     const f = leadId ? sigFactor(leadId) : 1;
     const q = leadId ? seqFactor(leadId) : 1;
+    const p = swapped ? SWAP_PENALTY : 1;
     return {
-      value: dps * f * q,
-      f, q,
+      value: dps * f * q * p,
+      f, q, p,
       w: f < 1 ? weaponOf(leadId) : null,
       s: (leadId && Math.abs(q - 1) > 0.001) ? seqAt(leadId) : null
     };
   }
   let detailId = null;
   let recFilter = "all";   // all | ready | spent | missing
+  let justPlaced = null;   // {t,s} of the slot that last received someone
 
   function recsFor(id){
     const g = GROUP(id);
@@ -1182,7 +1245,6 @@ dialog footer .btn:first-child{margin-right:auto}
   $("#charClose").onclick = () => $("#dlgChar").close();
 
   // ---- tools ----
-  $("#btnStartEmpty").onclick = () => { state = blank(); commit(); };
   $("#btnClearTeams").onclick = () => {
     state.teams.forEach(t => { t.c = [null,null,null]; });
     sel = null; commit();
@@ -1214,6 +1276,9 @@ dialog footer .btn:first-child{margin-right:auto}
   document.addEventListener("keydown", e => { if (e.key === "Escape" && sel){ sel = null; renderGrid(); } });
 
   // hot-reload state carry
+  document.body.classList.add("boot");
+  setTimeout(() => document.body.classList.remove("boot"), 1400);
+
   window.claude?.hot?.snapshot?.(() => ({ state, filt: { ...filt, el:[...filt.el], s:[...filt.s] } }));
   const boot = data => {
     if (data && data.state) state = data.state;

@@ -13,6 +13,8 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Team DPS on the board** — a full team whose trio matches the projection gets a strip under its slots with the projection rank, three-rotation DPS and difficulty. Matching ignores slot order and folds the Rover forms together, and where the projection lists the same trio more than once the strongest variant is credited.
 - **Estimated DPS** — with no exact match, a team whose first two slots match a projection team still gets a figure, prefixed `~` and marked **estimate** in amber: the last of the matching teams, i.e. the lowest-ranked, so it reads as a floor rather than a promise. It appears as soon as slots 1 and 2 are filled.
+- **Third slot swapped** — a flat **5%** comes off whenever the last slot is not the one the projection ran (including when it is still empty), shown as a `−5%` chip.
+- **Mid difficulty wins** — where the projection lists the same team at several difficulties, the `mid` run is the one used, since that is what a normal clear looks like. The strip says `mid of 3` rather than `best of 3` when it applied.
 - **Signature weapons** — every resonator is assumed to hold the weapon the projection calculates with. The crossed-swords badge on an owned portrait (and the weapon line in the detail modal) flags that you *don't* have it; teams they lead are then scaled to what the best standard-banner weapon of that type is worth, the figure turning red with a `⚔ 76%` tag. Only the lead slot is scaled, since that is where the damage sits.
 - **Sequences** — the `S0` badge on an owned portrait steps 0 → 6 (shift-click steps back), and the detail modal lists every sequence with its damage. A team's figure is scaled accordingly, tagged `S3 170%`. The projection does not calculate everyone at S0 — the free and standard characters are assumed at S6 — so the multiplier is relative to each character's own baseline, which the modal marks with a dashed chip. A Sanhua-led team left at S0 therefore reads **68%**, not 100%.
 - **Premium teams** — the crest in a team header flags it as one of your heavy-lifting teams: gold frame, filed corner, `premium` micro-label, gold slot borders and one slow pass of light across the header (suppressed under `prefers-reduced-motion`). A **Premium** tile in the stats row counts them. The flag rides with the team when you reorder, and survives export/import.
@@ -35,7 +37,7 @@ State lives in `localStorage` under `wuwa.rotation.v1`:
 `p` is the premium flag. Saves written before it existed stored each team as a bare
 `["camellya", null, null]`; those are upgraded on load.
 
-The first visit loads an example roster so the board is not empty; **Start empty** wipes it.
+The first visit loads an example roster so the board is not empty; **Reset all** wipes it.
 
 ## Files
 
