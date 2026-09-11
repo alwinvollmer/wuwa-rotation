@@ -87,8 +87,10 @@ other 20 — Verina, Shorekeeper, Baizhi, Mortefi and friends — publish none a
 no toggle, which costs nothing because only the lead slot is scaled.
 
 The **Sequence damage comparison** chart on the same pages is read by
-`tools/update-sequences.py` (41 characters publish one), straight off its `data-values`
-attribute. The baseline sequence per character comes from the projection's own builds, so
+`tools/update-sequences.py` (42 characters publish one) off its `data-values` and
+`data-labels` attributes. Bars are matched by label, not position — some characters
+publish an extra bar for an alternative build (Hiyuki has `S6 Cost 4 ATK`), which is
+ignored. The baseline sequence per character comes from the projection's own builds, so
 the percentages the app applies are always relative to what was actually calculated.
 
 Pushing to `main` redeploys GitHub Pages automatically.

@@ -24,7 +24,8 @@ import urllib.request
 ORIGIN = "https://arabwuwa.com"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UA = {"User-Agent": "Mozilla/5.0 (resonator-rotation updater)"}
-CHART = re.compile(r'class="[^"]*awcd-sequence-damage[^"]*"[^>]*data-values="([0-9.,\s]+)"')
+CHART = re.compile(
+    r'class="[^"]*awcd-sequence-damage[^"]*"[^>]*data-values="([0-9.,\s]+)"[^>]*data-labels="([^"]*)"')
 
 
 def fetch(url):
@@ -59,13 +60,23 @@ def main():
         if not found:
             skipped.append(cid)
             continue
-        values = [float(x) for x in found.group(1).split(",") if x.strip()]
-        if len(values) != 7 or values[0] <= 0:
+        # Some charts carry extra bars for alternative builds ("S6 Cost 4 ATK"),
+        # so the bars are matched by label rather than by position.
+        raw = [float(x) for x in found.group(1).split(",") if x.strip()]
+        labels = [x.strip() for x in found.group(2).split(",")]
+        by_label = {}
+        for label, value in zip(labels, raw):
+            by_label.setdefault(label, value)
+        values = [by_label.get(f"S{n}") for n in range(7)]
+        if any(v is None for v in values) or not values[0]:
             skipped.append(cid)
             continue
+        extra = [l for l in labels if l not in {f"S{n}" for n in range(7)}]
         base = baseline.get(cid, 0)
         out[cid] = {"v": [round(v, 2) for v in values], "s0": base}
         note = f"  (projection assumes S{base})" if base else ""
+        if extra:
+            note += "  [ignored: " + ", ".join(extra) + "]"
         print(f"  {cid:16} {'/'.join(str(int(v)) for v in values)}{note}")
 
     (ROOT / "sequences.js").write_text(
