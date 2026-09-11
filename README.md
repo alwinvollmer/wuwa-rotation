@@ -14,6 +14,7 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Team DPS on the board** — a full team whose trio matches the projection gets a strip under its slots with the projection rank, three-rotation DPS and difficulty. Matching ignores slot order and folds the Rover forms together, and where the projection lists the same trio more than once the strongest variant is credited.
 - **Estimated DPS** — with no exact match, a team whose first two slots match a projection team still gets a figure, prefixed `~` and marked **estimate** in amber: the last of the matching teams, i.e. the lowest-ranked, so it reads as a floor rather than a promise. It appears as soon as slots 1 and 2 are filled.
 - **Signature weapons** — every resonator is assumed to hold the weapon the projection calculates with. The crossed-swords badge on an owned portrait (and the weapon line in the detail modal) flags that you *don't* have it; teams they lead are then scaled to what the best standard-banner weapon of that type is worth, the figure turning red with a `⚔ 76%` tag. Only the lead slot is scaled, since that is where the damage sits.
+- **Sequences** — the `S0` badge on an owned portrait steps 0 → 6 (shift-click steps back), and the detail modal lists every sequence with its damage. A team's figure is scaled accordingly, tagged `S3 170%`. The projection does not calculate everyone at S0 — the free and standard characters are assumed at S6 — so the multiplier is relative to each character's own baseline, which the modal marks with a dashed chip. A Sanhua-led team left at S0 therefore reads **68%**, not 100%.
 - **Premium teams** — the crest in a team header flags it as one of your heavy-lifting teams: gold frame, filed corner, `premium` micro-label, gold slot borders and one slow pass of light across the header (suppressed under `prefers-reduced-motion`). A **Premium** tile in the stats row counts them. The flag rides with the team when you reorder, and survives export/import.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
 - **Recommended teams** — the `i` button on any portrait, in the roster *or* in a team slot, opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty. Every team lands in one of three groups, filterable by chips that carry their counts:
@@ -48,7 +49,9 @@ The first visit loads an example roster so the board is not empty; **Start empty
 | `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
 | `weapons.js` | Generated signature/standard weapon factors |
 | `tools/update-teams.py` | Regenerates `teams.js` |
+| `sequences.js` | Generated sequence damage curves |
 | `tools/update-weapons.py` | Regenerates `weapons.js` |
+| `tools/update-sequences.py` | Regenerates `sequences.js` |
 
 ## Updating for a new patch
 
@@ -58,7 +61,8 @@ Character data and portraits come from [arabwuwa.com](https://arabwuwa.com/chara
 python3 tools/update-characters.py
 python3 tools/update-teams.py
 python3 tools/update-weapons.py
-git add chars.js teams.js weapons.js img && git commit -m "data: update for <version>" && git push
+python3 tools/update-sequences.py
+git add chars.js teams.js weapons.js sequences.js img && git commit -m "data: update for <version>" && git push
 ```
 
 Two things the script handles that are easy to get wrong by hand:
@@ -79,6 +83,11 @@ Chisa) the app says so in the tooltip.
 37 characters publish a comparison; factors run 0.713–1.000 with a median of 0.825. The
 other 20 — Verina, Shorekeeper, Baizhi, Mortefi and friends — publish none and simply get
 no toggle, which costs nothing because only the lead slot is scaled.
+
+The **Sequence damage comparison** chart on the same pages is read by
+`tools/update-sequences.py` (41 characters publish one), straight off its `data-values`
+attribute. The baseline sequence per character comes from the projection's own builds, so
+the percentages the app applies are always relative to what was actually calculated.
 
 Pushing to `main` redeploys GitHub Pages automatically.
 
