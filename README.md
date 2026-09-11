@@ -13,6 +13,7 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Team DPS on the board** — a full team whose trio matches the projection gets a strip under its slots with the projection rank, three-rotation DPS and difficulty. Matching ignores slot order and folds the Rover forms together, and where the projection lists the same trio more than once the strongest variant is credited.
 - **Estimated DPS** — with no exact match, a team whose first two slots match a projection team still gets a figure, prefixed `~` and marked **estimate** in amber: the last of the matching teams, i.e. the lowest-ranked, so it reads as a floor rather than a promise. It appears as soon as slots 1 and 2 are filled.
+- **Signature weapons** — every resonator is assumed to hold the weapon the projection calculates with. The crossed-swords badge on an owned portrait (and the weapon line in the detail modal) flags that you *don't* have it; teams they lead are then scaled to what the best standard-banner weapon of that type is worth, the figure turning red with a `⚔ 76%` tag. Only the lead slot is scaled, since that is where the damage sits.
 - **Premium teams** — the crest in a team header flags it as one of your heavy-lifting teams: gold frame, filed corner, `premium` micro-label, gold slot borders and one slow pass of light across the header (suppressed under `prefers-reduced-motion`). A **Premium** tile in the stats row counts them. The flag rides with the team when you reorder, and survives export/import.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
 - **Recommended teams** — the `i` button on any portrait, in the roster *or* in a team slot, opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty. Every team lands in one of three groups, filterable by chips that carry their counts:
@@ -45,7 +46,9 @@ The first visit loads an example roster so the board is not empty; **Start empty
 | `img/roster/<id>.webp` | Generated tall art, 200 px wide — used in the roster, team slots and bench (all four Rover forms share `rover.webp`, as upstream does) |
 | `teams.js` | Generated team recommendations (152 teams) |
 | `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
+| `weapons.js` | Generated signature/standard weapon factors |
 | `tools/update-teams.py` | Regenerates `teams.js` |
+| `tools/update-weapons.py` | Regenerates `weapons.js` |
 
 ## Updating for a new patch
 
@@ -54,7 +57,8 @@ Character data and portraits come from [arabwuwa.com](https://arabwuwa.com/chara
 ```bash
 python3 tools/update-characters.py
 python3 tools/update-teams.py
-git add chars.js teams.js img && git commit -m "data: update for <version>" && git push
+python3 tools/update-weapons.py
+git add chars.js teams.js weapons.js img && git commit -m "data: update for <version>" && git push
 ```
 
 Two things the script handles that are easy to get wrong by hand:
@@ -62,6 +66,18 @@ Two things the script handles that are easy to get wrong by hand:
 - The image path must be taken from each record's `images.small`. Most portraits live under `/images/characters-filter/`, but the four Rovers live under `/images/characters-profile/` — a constructed path 404s for them.
 - The JSON's first entry is a `__meta` reference object, not a character.
 - Team recommendations come from a second dataset, `/data/team-dps-generated/<revision>/listing.en.json`, whose records are tuple-encoded against a `tupleFields` map and whose `<revision>` hash changes on every rebuild — `update-teams.py` reads the current one off the `/team-dps/` page instead of hard-coding it.
+
+### Where the weapon factor comes from
+
+arabwuwa publishes weapon stats (`/data/weapons.json`) and the weapon each projection
+team was calculated with, but its own weapon comparison lives inside the auth-gated
+calculator and is not fetchable. `tools/update-weapons.py` therefore *models* the ratio
+from the public stats: it lays each weapon over a generic endgame carry (flat ATK, ATK%,
+DMG bonus, crit rate and crit damage), counts conditional passives at 60% uptime because
+signatures lean on them and standard weapons barely have any, and treats DEF ignore,
+amplify and RES shred as their own multiplier. The result currently spans 0.72–1.00 with a
+median of 0.89. It is an estimate, and the app presents it as one — adjust `BASE` and
+`CONDITIONAL_UPTIME` in that script if you would rather it read differently.
 
 Pushing to `main` redeploys GitHub Pages automatically.
 

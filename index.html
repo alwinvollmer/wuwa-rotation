@@ -148,6 +148,16 @@ button{cursor:pointer; background:none; border:none}
   background:var(--shade); backdrop-filter:blur(2px); border-top-left-radius:var(--r);
 }
 .card .info:hover{color:var(--ground); background:var(--gold)}
+.card .sig{
+  position:absolute; bottom:0; left:0; width:19px; height:19px; line-height:19px; text-align:center;
+  font-size:.68rem; color:var(--gold); background:var(--shade); backdrop-filter:blur(2px);
+  border-top-right-radius:var(--r);
+}
+.card .sig[aria-pressed="false"]{color:var(--ink-faint)}
+.card .sig[aria-pressed="false"]::after{             /* struck through: weapon not held */
+  content:""; position:absolute; left:3px; right:3px; top:50%; height:1px; background:var(--bad); transform:rotate(-35deg);
+}
+.card .sig:hover{background:color-mix(in srgb,var(--gold) 30%,var(--shade))}
 .steps .u{flex:1; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:600; color:var(--ink-dim); white-space:nowrap}
 .card:not(.own) .steps{display:none}
 
@@ -251,6 +261,11 @@ button{cursor:pointer; background:none; border:none}
 .team .match .dps{color:var(--ink); font-weight:600}
 .team .match .bucket{text-transform:uppercase; letter-spacing:.08em; font-size:.64rem; color:var(--ink-faint)}
 .team .match .var{margin-left:auto; font-size:.64rem; color:var(--ink-faint)}
+.team .match .wepTag{
+  font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; color:var(--bad);
+  border:1px solid color-mix(in srgb,var(--bad) 40%,transparent); border-radius:2px; padding:0 4px;
+}
+.team .match.wep .dps{color:var(--bad)}
 .team .match.est{
   background:color-mix(in srgb,var(--gold) 9%,transparent);
   border-top-style:dashed; border-top-color:color-mix(in srgb,var(--gold) 45%,var(--edge));
@@ -301,6 +316,17 @@ dialog footer .btn:first-child{margin-right:auto}
 .char-head h2{font-size:1rem; text-transform:none; letter-spacing:.02em}
 .char-head p{margin:1px 0 0; font-size:.78rem; color:var(--ink-faint); letter-spacing:.02em}
 .char-head .out{margin-left:auto; font-size:.72rem}
+.wepline{
+  display:flex; align-items:baseline; gap:7px; margin-top:5px; padding:3px 8px;
+  border:1px solid var(--edge); border-left:2px solid var(--gold); border-radius:var(--r);
+  background:var(--slot); font-size:.78rem; color:var(--ink); text-align:left;
+}
+.wepline .mark{color:var(--gold)}
+.wepline i{font-style:normal; font-size:.7rem; color:var(--ink-faint)}
+.wepline:hover{border-color:var(--gold)}
+.wepline[aria-pressed="false"]{border-left-color:var(--bad)}
+.wepline[aria-pressed="false"] .mark{color:var(--bad)}
+.wepline[aria-pressed="false"] i{color:var(--bad)}
 .recs{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; max-height:52vh; overflow-y:auto}
 .rec{
   display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
@@ -435,6 +461,7 @@ dialog footer .btn:first-child{margin-right:auto}
 
 <script src="chars.js"></script>
 <script src="teams.js"></script>
+<script src="weapons.js"></script>
 <script>
 (function(){
   "use strict";
@@ -447,6 +474,18 @@ dialog footer .btn:first-child{margin-right:auto}
   const GROUP_NAME = { rover: "Rover" };
   const GROUP_FACE = { rover: (CHARS.find(c => GROUP(c.i) === "rover") || {}).i };
   const isShared = id => GROUP(id) !== id;
+  const WEP = (typeof WEAPONS !== "undefined" && WEAPONS) ? WEAPONS : {};
+  // Every resonator is assumed to hold their signature weapon — the one the
+  // projection calculates with. Unflag it and their teams are scaled down to
+  // what the best standard-banner weapon of that type is worth.
+  const weaponOf = id => WEP[id] || (isShared(id) ? WEP["rover-spectro"] : null);
+  const hasSig = id => !state.nosig[GROUP(id)];
+  const sigFactor = id => (hasSig(id) || !weaponOf(id)) ? 1 : weaponOf(id).f;
+  function toggleSig(id){
+    const g = GROUP(id);
+    if (state.nosig[g]) delete state.nosig[g]; else state.nosig[g] = true;
+    commit();
+  }
   const img = id => "img/" + id + ".webp";                                         // square art: detail modal
   const portrait = id => "img/roster/" + (isShared(id) ? "rover" : id) + ".webp";  // tall art: roster, teams, bench
   const SEED_OWNED = {"camellya":2,"jinhsi":1,"shorekeeper":2,"changli":1,"carlotta":1,"verina":3,"sanhua":2,"baizhi":2,"yangyang":2,"mortefi":1,"rover":1};
@@ -457,7 +496,7 @@ dialog footer .btn:first-child{margin-right:auto}
   let filt = { q:"", el:new Set(), s:new Set(), owned:false, avail:false };
 
   function newTeam(c){ return { c: c || [null,null,null], p:false }; }   // declaration: load() runs before any const here
-  function blank(){ return { owned:{}, teams:[newTeam(),newTeam(),newTeam()], seeded:false }; }
+  function blank(){ return { owned:{}, teams:[newTeam(),newTeam(),newTeam()], nosig:{}, seeded:false }; }
   function migrate(s){
     const owned = {};
     for (const [k,v] of Object.entries(s.owned || {})){
@@ -466,6 +505,9 @@ dialog footer .btn:first-child{margin-right:auto}
       if (n > 0) owned[g] = Math.max(owned[g] || 0, Math.min(12, n));
     }
     s.owned = owned;
+    const nosig = {};
+    for (const k of Object.keys(s.nosig || {})) if (BY_ID[k] || GROUP_NAME[k]) nosig[GROUP(k)] = true;
+    s.nosig = nosig;
     // v1 saved a team as a bare [a,b,c]; it is now { c:[a,b,c], p:premium }.
     s.teams = (Array.isArray(s.teams) ? s.teams : []).map(t => {
       const src = Array.isArray(t) ? t : (t && Array.isArray(t.c) ? t.c : null);
@@ -623,6 +665,14 @@ dialog footer .btn:first-child{margin-right:auto}
           (own ? '<b class="left num">' + rest + '/' + n + '</b>' : '') +
           (isShared(c.i) ? '<b class="shared" title="Rover counts as one resonator: all forms share these charges">shared</b>' : '') +
           '<button type="button" class="info" title="Recommended teams for ' + c.n + '">i</button>' +
+          (own && weaponOf(c.i)
+            ? '<button type="button" class="sig" aria-pressed="' + (hasSig(c.i) ? "true" : "false") + '" title="' +
+              (hasSig(c.i)
+                ? "Has " + weaponOf(c.i).s + " (signature) — click if not"
+                : "No " + weaponOf(c.i).s + ": teams led by them count as " +
+                  Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + ")") +
+              '">&#9876;</button>'
+            : "") +
         '</div>' +
         '<b class="name">' + c.n + '</b>' +
         '<div class="steps"><button type="button" data-d="-1" title="One charge fewer">&minus;</button>' +
@@ -630,9 +680,11 @@ dialog footer .btn:first-child{margin-right:auto}
         '<button type="button" data-d="1" title="One charge more">+</button></div>';
 
       card.querySelector(".info").onclick = ev => { ev.stopPropagation(); openDetails(c.i); };
+      const sigBtn = card.querySelector(".sig");
+      if (sigBtn) sigBtn.onclick = ev => { ev.stopPropagation(); toggleSig(c.i); };
       const port = card.querySelector(".port");
       port.onclick = ev => {
-        if (ev.target.closest(".info")) return;
+        if (ev.target.closest(".info") || ev.target.closest(".sig")) return;
         if (!own){ setUses(c.i, 1); return; }
         sel = (sel === c.i || rest <= 0) ? null : c.i;
         renderGrid();
@@ -773,25 +825,27 @@ dialog footer .btn:first-child{margin-right:auto}
       node.appendChild(slots);
       const match = matchFor(team);
       const est = match ? null : estimateFor(team);
-      if (match){
+      const lead = team[0];
+      if (match || est){
+        const src = match ? match.best : est.rec;
+        const sc = scaled(src.d, lead);
         const strip = document.createElement("div");
-        strip.className = "match";
-        strip.innerHTML = '<b class="num">#' + match.best.r + '</b>' +
-          '<span class="dps num">' + fmt(match.best.d) + ' DPS</span>' +
-          '<span class="bucket">' + (match.best.b || "?") + '</span>' +
-          (match.variants > 1 ? '<span class="var">best of ' + match.variants + '</span>' : "");
-        strip.title = match.best.n + " — Team DPS projection, average of three rotations";
-        node.appendChild(strip);
-      } else if (est){
-        const strip = document.createElement("div");
-        strip.className = "match est";
-        strip.innerHTML = '<b class="num">#' + est.rec.r + '</b>' +
-          '<span class="dps num">~' + fmt(est.rec.d) + ' DPS</span>' +
-          '<span class="bucket">' + (est.rec.b || "?") + '</span>' +
-          '<span class="var">estimate</span>';
-        strip.title = "Estimate: this exact trio is not in the projection. Your first two slots " +
-          "match " + est.variants + " projection team" + (est.variants === 1 ? "" : "s") +
-          "; shown is the lowest of them (" + est.rec.n + ").";
+        strip.className = "match" + (match ? "" : " est") + (sc.w ? " wep" : "");
+        strip.innerHTML = '<b class="num">#' + src.r + '</b>' +
+          '<span class="dps num">' + (match ? "" : "~") + fmt(sc.value) + ' DPS</span>' +
+          '<span class="bucket">' + (src.b || "?") + '</span>' +
+          (sc.w ? '<span class="wepTag" title="' + BY_ID[lead].n + ' without ' + sc.w.s + ': scaled to ' +
+                  sc.w.b + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
+          (match
+            ? (match.variants > 1 ? '<span class="var">best of ' + match.variants + '</span>' : "")
+            : '<span class="var">estimate</span>');
+        strip.title = match
+          ? src.n + " — Team DPS projection, average of three rotations"
+          : "Estimate: this exact trio is not in the projection. Your first two slots match " +
+            est.variants + " projection team" + (est.variants === 1 ? "" : "s") +
+            "; shown is the lowest of them (" + src.n + ").";
+        if (sc.w) strip.title += " Scaled to " + Math.round(sc.f * 100) + "% because " + BY_ID[lead].n +
+          " is flagged without " + sc.w.s + " (standard: " + sc.w.b + ").";
         node.appendChild(strip);
       }
       wrap.appendChild(node);
@@ -893,7 +947,12 @@ dialog footer .btn:first-child{margin-right:auto}
       if (state.teams[i].c.filter(Boolean).length === 3 && compKey(state.teams[i].c) === k) return i + 1;
     return 0;
   };
-  const fmt = n => n.toLocaleString("en-US");
+  const fmt = n => Math.round(n).toLocaleString("en-US");
+  // The lead slot carries the damage, so that is the one whose weapon we apply.
+  function scaled(dps, leadId){
+    const f = leadId ? sigFactor(leadId) : 1;
+    return { value: dps * f, f, w: f < 1 ? weaponOf(leadId) : null };
+  }
   let detailId = null;
   let recFilter = "all";   // all | ready | spent | missing
 
@@ -935,6 +994,7 @@ dialog footer .btn:first-child{margin-right:auto}
     renderRecs();
   }
 
+  const recScale = rec => scaled(rec.d, rec.c[0]);
   const TIER_ORDER = { placed:0, ready:1, spent:2, missing:3 };
   function renderRecs(){
     const list = $("#recs");
@@ -975,7 +1035,7 @@ dialog footer .btn:first-child{margin-right:auto}
                  (state === " out" ? '<i class="tag">0 left</i>' : "") + '</span>';
         }).join("") + '</div>' +
         '<button class="btn act"' + (f.tier === "ready" ? "" : " disabled") + '>' + TIER_LABEL[f.tier] + '</button>' +
-        '<div class="meta">' + fmt(r.d) + ' DPS &middot; ' + (r.b || "?") +
+        '<div class="meta">' + (recScale(r).w ? "&#9876; " : "") + fmt(recScale(r).value) + ' DPS &middot; ' + (r.b || "?") +
         (f.why ? ' &middot; <span class="why">' + f.why + '</span>' : "") + '</div>';
       if (f.tier === "ready") li.querySelector(".act").onclick = () => fieldTeam(r);
       list.appendChild(li);
@@ -1011,10 +1071,21 @@ dialog footer .btn:first-child{margin-right:auto}
     head.innerHTML = '<img src="' + img(id) + '" alt="">' +
       '<div><h2>' + c.n + '</h2><p>' + c.s + '&#9733; &middot; ' + c.e + ' &middot; ' + c.w + ' &middot; ' +
       (n ? rest + " of " + n + " charge" + (n === 1 ? "" : "s") + " left" : "not in your roster") +
-      (isShared(id) ? " (Rover shares one pool)" : "") + '</p></div>' +
+      (isShared(id) ? " (Rover shares one pool)" : "") + '</p>' +
+      (weaponOf(id)
+        ? '<button class="wepline" id="wepToggle" aria-pressed="' + (hasSig(id) ? "true" : "false") + '">' +
+          '<span class="mark">&#9876;</span>' +
+          (hasSig(id)
+            ? '<span>' + weaponOf(id).s + '</span><i>signature &middot; full damage</i>'
+            : '<span>' + weaponOf(id).b + '</span><i>standard &middot; ' +
+              Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + '</i>') +
+          '</button>'
+        : "") + '</div>' +
       '<a class="btn out" href="https://arabwuwa.com/characters/' + id + '/" target="_blank" rel="noopener">arabwuwa &#8599;</a>';
+    const wt = $("#wepToggle");
+    if (wt) wt.onclick = () => { toggleSig(id); openDetails(id); };
     renderRecs();
-    $("#dlgChar").showModal();
+    if (!$("#dlgChar").open) $("#dlgChar").showModal();
   }
   $("#charClose").onclick = () => $("#dlgChar").close();
 
