@@ -940,8 +940,10 @@ dialog footer .btn:first-child{margin-right:auto}
       const lead = team[0];
       if (match || est){
         const src = match ? match.best : est.rec;
-        const swapped = !match && (!team[2] || GROUP(team[2]) !== GROUP(src.c[2]));
-        const sc = scaled(src.d, lead, swapped);
+        const penalty = match ? 1
+          : est.kind === "13" ? CORE_PENALTY
+          : (!team[2] || GROUP(team[2]) !== GROUP(src.c[2])) ? SWAP_PENALTY : 1;
+        const sc = scaled(src.d, lead, penalty);
         const strip = document.createElement("div");
         strip.className = "match" + (match ? "" : " est") +
           (sc.w ? (sc.f < 1 ? " wep wdown" : " wep wup") : "");
@@ -954,15 +956,19 @@ dialog footer .btn:first-child{margin-right:auto}
           (sc.s !== null ? '<span class="seqTag ' + (sc.q >= 1 ? "up" : "down") + '" title="' + BY_ID[lead].n +
                   ' at S' + sc.s + ' — ' + Math.round(sc.q * 100) + '% of the projection, which calculates them at S' +
                   ((seqOf(lead) || {}).s0 || 0) + '">S' + sc.s + ' ' + Math.round(sc.q * 100) + '%</span>' : "") +
-          (sc.p < 1 ? '<span class="swapTag" title="Third slot differs from the projection\'s: a flat ' +
-                  Math.round((1 - SWAP_PENALTY) * 100) + '% comes off">&minus;' +
-                  Math.round((1 - SWAP_PENALTY) * 100) + '%</span>' : "") +
+          (sc.p < 1 ? '<span class="swapTag" title="' +
+                  (sc.p === CORE_PENALTY
+                    ? 'Only the first and third slots match the projection\'s team — the second slot carries a lot, so a flat '
+                    : 'Third slot differs from the projection\'s: a flat ') +
+                  Math.round((1 - sc.p) * 100) + '% comes off">&minus;' +
+                  Math.round((1 - sc.p) * 100) + '%</span>' : "") +
           (match
             ? (match.variants > 1 ? '<span class="var">' + (match.mid ? "mid of " : "best of ") + match.variants + '</span>' : "")
             : '<span class="var">estimate</span>');
         strip.title = match
           ? src.n + " — Team DPS projection, average of three rotations"
-          : "Estimate: this exact trio is not in the projection. Your first two slots match " +
+          : "Estimate: this exact trio is not in the projection. Your " +
+            (est.kind === "13" ? "first and third slots" : "first two slots") + " match " +
             est.variants + " projection team" + (est.variants === 1 ? "" : "s") +
             "; shown is the lowest of them (" + src.n + ").";
         if (sc.w) strip.title += " Scaled to " + Math.round(sc.f * 100) + "% because " + BY_ID[lead].n +
@@ -1049,12 +1055,17 @@ dialog footer .btn:first-child{margin-right:auto}
   };
   // Slots 1+2 alone already pin most of a team's damage, so when the full trio
   // is not in the projection we fall back to whatever the pair can tell us.
-  const PAIR_BY_KEY = new Map();
+  const PAIR_BY_KEY = new Map();     // lead + second slot
+  const PAIR13_BY_KEY = new Map();   // lead + third slot, a looser match
   RECS.forEach(t => {
     if (t.c.length < 2) return;
     const k = GROUP(t.c[0]) + "|" + GROUP(t.c[1]);
     if (!PAIR_BY_KEY.has(k)) PAIR_BY_KEY.set(k, []);
     PAIR_BY_KEY.get(k).push(t);
+    if (t.c.length < 3) return;
+    const k13 = GROUP(t.c[0]) + "|" + GROUP(t.c[2]);
+    if (!PAIR13_BY_KEY.has(k13)) PAIR13_BY_KEY.set(k13, []);
+    PAIR13_BY_KEY.get(k13).push(t);
   });
   // The projection often lists the same trio more than once (different builds);
   // a board team is credited with the strongest of them.
@@ -1069,11 +1080,20 @@ dialog footer .btn:first-child{margin-right:auto}
   // Estimate: the LAST projection team sharing this team's first two slots —
   // the lowest-ranked of them, so the number reads as a floor, not a promise.
   function estimateFor(team){
-    if (!team[0] || !team[1]) return null;
-    const list = PAIR_BY_KEY.get(GROUP(team[0]) + "|" + GROUP(team[1]));
-    if (!list || !list.length) return null;
-    const pool = preferMid(list);
-    return { rec: pool[pool.length-1], variants: list.length, mid: pool[0].b === "mid" };
+    if (!team[0]) return null;
+    const pick = (list, kind) => {
+      const pool = preferMid(list);
+      return { rec: pool[pool.length-1], variants: list.length, mid: pool[0].b === "mid", kind };
+    };
+    if (team[1]){
+      const list = PAIR_BY_KEY.get(GROUP(team[0]) + "|" + GROUP(team[1]));
+      if (list && list.length) return pick(list, "12");
+    }
+    if (team[2]){
+      const list = PAIR13_BY_KEY.get(GROUP(team[0]) + "|" + GROUP(team[2]));
+      if (list && list.length) return pick(list, "13");
+    }
+    return null;
   }
   const placedAs = rec => {
     const k = compKey(rec.c);
@@ -1085,11 +1105,12 @@ dialog footer .btn:first-child{margin-right:auto}
   // The lead slot carries the damage, so that is the one whose weapon we apply.
   // A team whose third slot is not the one the projection ran loses a flat 5%:
   // the support slot is worth something, just not enough to model per character.
-  const SWAP_PENALTY = 0.95;
-  function scaled(dps, leadId, swapped){
+  const SWAP_PENALTY = 0.95;    // third slot is not the projection's
+  const CORE_PENALTY = 0.75;    // second slot is not either: the core pairing is broken
+  function scaled(dps, leadId, penalty){
     const f = leadId ? sigFactor(leadId) : 1;
     const q = leadId ? seqFactor(leadId) : 1;
-    const p = swapped ? SWAP_PENALTY : 1;
+    const p = penalty || 1;
     return {
       value: dps * f * q * p,
       f, q, p,
