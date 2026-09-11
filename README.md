@@ -82,14 +82,16 @@ takes the 100% entry as the signature and the best standard-banner weapon listed
 fallback, at **the highest refinement published** — a standard 5-star is the one weapon
 you realistically take to R5. Where only R1 or R3 is charted the app says so on the weapon
 line. Where the page compares no standard weapon at all, the best **4-star** it does list
-stands in instead, labelled as such (Mornye → Discord R5).
+stands in (Mornye → Discord R5), and failing that the **weakest option charted**
+(Jingran → Thunderflare Dominion R1). Each case is labelled on the weapon line, so a
+stand-in never passes for a standard-banner figure.
 
-38 characters have a factor; they run 0.713–1.025 with a median of 0.840. Above 1.000 is
+39 characters have a factor; they run 0.713–1.025 with a median of 0.840. Above 1.000 is
 real, not a bug: Yangyang's Emerald of Genesis at R5 beats her signature at R1, and the
-tag then reads cyan rather than red. The remaining 22 get no toggle — 16 publish no
-comparison at all (Verina, Shorekeeper, Baizhi, Mortefi and other supports), Jingran is
-compared only against a limited 5-star, Zhezhi and Rover Aero list nothing but their own
-weapon, and Souming, Hsin and Rover Electro have no page yet.
+tag then reads cyan rather than red. The remaining 21 get no toggle — 16 publish no
+comparison at all (Verina, Shorekeeper, Baizhi, Mortefi and other supports), Zhezhi and
+Rover Aero chart nothing but their own weapon, and Souming, Hsin and Rover Electro have
+no page yet.
 
 The **Sequence damage comparison** chart on the same pages is read by
 `tools/update-sequences.py` (42 characters publish one) off its `data-values` and

@@ -81,11 +81,19 @@ def main():
         if not pool:
             kind = "4star"
             pool = [c for c in cards if rarity.get(c["id"]) == 4 and c["id"] != base["id"]]
-        if not pool:
-            skipped.append(cid)
-            continue
-        pool.sort(key=lambda c: (-c["rank"], -c["pct"]))
-        std = pool[0]
+        if pool:
+            pool.sort(key=lambda c: (-c["rank"], -c["pct"]))
+            std = pool[0]
+        else:
+            # Nothing you are guaranteed to own is charted, so fall back to the
+            # weakest alternative published: an understatement beats a fantasy.
+            kind = "worst"
+            pool = [c for c in cards if c["id"] != base["id"]]
+            if not pool:
+                skipped.append(cid)
+                continue
+            pool.sort(key=lambda c: (c["pct"], -c["rank"]))
+            std = pool[0]
 
         out[cid] = {
             "s": base["name"], "sid": base["id"],
@@ -94,7 +102,7 @@ def main():
             "r": std["rank"],
             "k": kind,
         }
-        tag = "" if kind == "standard" else "  [4-star stand-in]"
+        tag = {"standard": "", "4star": "  [4-star stand-in]", "worst": "  [weakest listed]"}[kind]
         print(f"  {cid:16} {base['name']:24} -> {std['name']} R{std['rank']}  {std['pct']:.2f}%{tag}")
 
     (ROOT / "weapons.js").write_text(
@@ -102,7 +110,8 @@ def main():
         "// \"Weapon comparison / Relative damage\" section on arabwuwa.com.\n"
         "// s/sid: signature weapon at R1, the 100% baseline the DPS figures assume.\n"
         "// b/bid/r: the fallback weapon, at the highest refinement published.\n"
-        "// k: \"standard\" for a standard-banner 5-star, \"4star\" when the page compares none.\n"
+        "// k: \"standard\" (standard-banner 5-star), \"4star\" (best 4-star when no standard\n"
+        "//    weapon is charted) or \"worst\" (weakest alternative, when neither exists).\n"
         "// f: its share of the signature's damage.\n"
         "const WEAPONS=" + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n",
         encoding="utf-8",

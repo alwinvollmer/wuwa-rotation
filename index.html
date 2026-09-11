@@ -548,7 +548,9 @@ dialog footer .btn:first-child{margin-right:auto}
   const wepNote = w => (w && w.r && w.r !== 5) ? " (only R" + w.r + " published)" : " R5";
   // Most fallbacks are a standard-banner 5-star; where the page compares none,
   // the best 4-star it does list stands in instead.
-  const wepKind = w => (w && w.k === "4star") ? "4&#9733; stand-in" : "standard";
+  const wepKind = w => !w ? "" :
+    w.k === "4star" ? "4&#9733; stand-in" :
+    w.k === "worst" ? "weakest charted" : "standard";
   function toggleSig(id){
     const g = GROUP(id);
     if (state.nosig[g]) delete state.nosig[g]; else state.nosig[g] = true;
@@ -775,7 +777,8 @@ dialog footer .btn:first-child{margin-right:auto}
                 ? "Has " + weaponOf(c.i).s + " (signature) — click if not"
                 : "No " + weaponOf(c.i).s + ": teams led by them count as " +
                   Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + wepNote(weaponOf(c.i)) +
-                  (weaponOf(c.i).k === "4star" ? ", 4-star stand-in" : "") + ")") +
+                  (weaponOf(c.i).k === "4star" ? ", 4-star stand-in"
+                   : weaponOf(c.i).k === "worst" ? ", weakest charted option" : "") + ")") +
               '">&#9876;</button>'
             : "") +
         '</div>' +
@@ -946,7 +949,8 @@ dialog footer .btn:first-child{margin-right:auto}
           '<span class="dps num">' + (match ? "" : "~") + fmt(sc.value) + ' DPS</span>' +
           '<span class="bucket">' + (src.b || "?") + '</span>' +
           (sc.w ? '<span class="wepTag ' + (sc.f < 1 ? "down" : "up") + '" title="' + BY_ID[lead].n + ' without ' + sc.w.s + ': scaled to ' +
-                  sc.w.b + wepNote(sc.w) + (sc.w.k === "4star" ? " (4-star stand-in)" : "") + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
+                  sc.w.b + wepNote(sc.w) +
+                  (sc.w.k === "4star" ? " (4-star stand-in)" : sc.w.k === "worst" ? " (weakest charted)" : "") + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
           (sc.s !== null ? '<span class="seqTag ' + (sc.q >= 1 ? "up" : "down") + '" title="' + BY_ID[lead].n +
                   ' at S' + sc.s + ' — ' + Math.round(sc.q * 100) + '% of the projection, which calculates them at S' +
                   ((seqOf(lead) || {}).s0 || 0) + '">S' + sc.s + ' ' + Math.round(sc.q * 100) + '%</span>' : "") +
