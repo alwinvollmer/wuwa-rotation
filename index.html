@@ -207,6 +207,18 @@ button{cursor:pointer; background:none; border:none}
 .team .match .dps{color:var(--ink); font-weight:600}
 .team .match .bucket{text-transform:uppercase; letter-spacing:.08em; font-size:.64rem; color:var(--ink-faint)}
 .team .match .var{margin-left:auto; font-size:.64rem; color:var(--ink-faint)}
+.team .match.est{
+  background:color-mix(in srgb,var(--gold) 9%,transparent);
+  border-top-style:dashed; border-top-color:color-mix(in srgb,var(--gold) 45%,var(--edge));
+}
+.team .match.est b{color:var(--gold)}
+.team .match.est .dps{
+  color:var(--gold); border-bottom:1px dashed color-mix(in srgb,var(--gold) 60%,transparent);
+}
+.team .match.est .var{
+  color:var(--gold); text-transform:uppercase; letter-spacing:.1em; font-weight:700;
+  border:1px solid color-mix(in srgb,var(--gold) 45%,transparent); border-radius:2px; padding:0 4px;
+}
 .addteam{
   border:1px dashed var(--edge-hi); border-radius:var(--r); min-height:120px; color:var(--ink-faint);
   font-family:"Chakra Petch",sans-serif; font-size:.82rem; letter-spacing:.12em; text-transform:uppercase;
@@ -706,6 +718,7 @@ dialog footer .btn:first-child{margin-right:auto}
       });
       node.appendChild(slots);
       const match = matchFor(team);
+      const est = match ? null : estimateFor(team);
       if (match){
         const strip = document.createElement("div");
         strip.className = "match";
@@ -714,6 +727,17 @@ dialog footer .btn:first-child{margin-right:auto}
           '<span class="bucket">' + (match.best.b || "?") + '</span>' +
           (match.variants > 1 ? '<span class="var">best of ' + match.variants + '</span>' : "");
         strip.title = match.best.n + " — Team DPS projection, average of three rotations";
+        node.appendChild(strip);
+      } else if (est){
+        const strip = document.createElement("div");
+        strip.className = "match est";
+        strip.innerHTML = '<b class="num">#' + est.rec.r + '</b>' +
+          '<span class="dps num">~' + fmt(est.rec.d) + ' DPS</span>' +
+          '<span class="bucket">' + (est.rec.b || "?") + '</span>' +
+          '<span class="var">estimate</span>';
+        strip.title = "Estimate: this exact trio is not in the projection. Your first two slots " +
+          "match " + est.variants + " projection team" + (est.variants === 1 ? "" : "s") +
+          "; shown is the lowest of them (" + est.rec.n + ").";
         node.appendChild(strip);
       }
       wrap.appendChild(node);
@@ -782,6 +806,15 @@ dialog footer .btn:first-child{margin-right:auto}
     RECS_BY_KEY.get(k).push(t);
   });
   RECS_BY_KEY.forEach(list => list.sort((a,b) => b.d - a.d));
+  // Slots 1+2 alone already pin most of a team's damage, so when the full trio
+  // is not in the projection we fall back to whatever the pair can tell us.
+  const PAIR_BY_KEY = new Map();
+  RECS.forEach(t => {
+    if (t.c.length < 2) return;
+    const k = GROUP(t.c[0]) + "|" + GROUP(t.c[1]);
+    if (!PAIR_BY_KEY.has(k)) PAIR_BY_KEY.set(k, []);
+    PAIR_BY_KEY.get(k).push(t);
+  });
   // The projection often lists the same trio more than once (different builds);
   // a board team is credited with the strongest of them.
   function matchFor(team){
@@ -789,6 +822,14 @@ dialog footer .btn:first-child{margin-right:auto}
     if (filled.length !== 3) return null;
     const list = RECS_BY_KEY.get(compKey(team));
     return list ? { best: list[0], variants: list.length } : null;
+  }
+  // Estimate: the LAST projection team sharing this team's first two slots —
+  // the lowest-ranked of them, so the number reads as a floor, not a promise.
+  function estimateFor(team){
+    if (!team[0] || !team[1]) return null;
+    const list = PAIR_BY_KEY.get(GROUP(team[0]) + "|" + GROUP(team[1]));
+    if (!list || !list.length) return null;
+    return { rec: list[list.length-1], variants: list.length };
   }
   const placedAs = rec => {
     const k = compKey(rec.c);
