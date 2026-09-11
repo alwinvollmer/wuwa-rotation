@@ -1,0 +1,666 @@
+<title>Resonator Rotation</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --ground:#0b0e13; --panel:#141a22; --panel-2:#1b232d; --edge:#27313d; --edge-hi:#3a4757;
+  --ink:#e2e8f0; --ink-dim:#93a1b3; --ink-faint:#64748b;
+  --gold:#e0ae5b; --gold-deep:#b8862f; --cyan:#3fb6c2;
+  --ok:#4ec98c; --warn:#e0ae5b; --bad:#e0635a;
+  --slot:#10161d; --shade:rgba(0,0,0,.45);
+  --el-glacio:#58b8ea; --el-fusion:#ef6a52; --el-electro:#a97ae8; --el-aero:#3fc98f; --el-spectro:#e8d158; --el-havoc:#d9679a;
+  --r:3px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ground:#eceef1; --panel:#f7f8fa; --panel-2:#eef0f4; --edge:#d3d8e0; --edge-hi:#b6bfcb;
+    --ink:#1a2230; --ink-dim:#4d5a6b; --ink-faint:#7c8798;
+    --gold:#9a6d16; --gold-deep:#c79a45; --cyan:#1d7f8a;
+    --slot:#e4e7ec; --shade:rgba(20,30,45,.12);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#eceef1; --panel:#f7f8fa; --panel-2:#eef0f4; --edge:#d3d8e0; --edge-hi:#b6bfcb;
+  --ink:#1a2230; --ink-dim:#4d5a6b; --ink-faint:#7c8798;
+  --gold:#9a6d16; --gold-deep:#c79a45; --cyan:#1d7f8a;
+  --slot:#e4e7ec; --shade:rgba(20,30,45,.12);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Barlow",system-ui,sans-serif; font-size:15px; line-height:1.45;
+  padding-block:0; padding-left:0; padding-right:0;
+}
+h1,h2,h3,.disp{font-family:"Chakra Petch","Barlow",system-ui,sans-serif; text-wrap:balance; margin:0}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+button,input,select{font:inherit; color:inherit}
+button{cursor:pointer; background:none; border:none}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:30;
+  background:linear-gradient(var(--panel),var(--panel) 70%,transparent);
+  border-bottom:1px solid var(--edge);
+  padding:14px 16px 12px;
+  display:flex; flex-wrap:wrap; gap:14px 18px; align-items:flex-end;
+}
+.brand{display:flex; flex-direction:column; gap:2px; margin-right:auto}
+.brand h1{font-size:1.3rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase}
+.brand h1 span{color:var(--gold)}
+.brand p{margin:0; font-size:.8rem; color:var(--ink-faint); letter-spacing:.02em}
+.stats{display:flex; flex-wrap:wrap; gap:2px}
+.stat{padding:2px 12px; border-left:1px solid var(--edge); display:flex; flex-direction:column; min-width:74px}
+.stat b{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:1.15rem; font-weight:600; line-height:1.15}
+.stat span{font-size:.66rem; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-faint)}
+.stat.hot b{color:var(--gold)}
+.tools{display:flex; gap:8px; flex-wrap:wrap}
+.btn{
+  border:1px solid var(--edge-hi); background:var(--panel-2); color:var(--ink-dim);
+  padding:6px 13px; border-radius:var(--r); font-size:.78rem; font-weight:600;
+  text-transform:uppercase; letter-spacing:.08em; transition:.12s;
+}
+.btn:hover{color:var(--ink); border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%,var(--panel-2))}
+.btn.primary{color:var(--ground); background:var(--gold); border-color:var(--gold)}
+.btn.primary:hover{background:var(--gold-deep); border-color:var(--gold-deep); color:#fff}
+.btn.danger:hover{border-color:var(--bad); color:var(--bad); background:color-mix(in srgb,var(--bad) 10%,var(--panel-2))}
+
+/* ---------- notice ---------- */
+.notice{
+  margin:12px 16px 0; padding:9px 13px; border:1px solid var(--edge-hi); border-left:3px solid var(--gold);
+  background:color-mix(in srgb,var(--gold) 7%,var(--panel)); border-radius:var(--r);
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:.85rem; color:var(--ink-dim);
+}
+.notice b{color:var(--ink)}
+.notice .btn{margin-left:auto}
+
+/* ---------- workspace ---------- */
+.workspace{display:grid; grid-template-columns:minmax(330px,30vw) 1fr; gap:16px; padding:16px; align-items:start}
+@media (max-width:900px){ .workspace{grid-template-columns:1fr} }
+
+.panel{background:var(--panel); border:1px solid var(--edge); border-radius:var(--r)}
+.panel > header{
+  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  padding:11px 13px; border-bottom:1px solid var(--edge);
+}
+.panel > header h2{font-size:.9rem; text-transform:uppercase; letter-spacing:.13em; font-weight:600}
+.panel > header .hint{font-size:.76rem; color:var(--ink-faint); margin-left:auto}
+
+/* ---------- roster ---------- */
+.roster{position:sticky; top:84px; max-height:calc(100vh - 100px); display:flex; flex-direction:column}
+@media (max-width:900px){ .roster{position:static; max-height:none} }
+.filters{padding:10px 13px; display:flex; flex-direction:column; gap:9px; border-bottom:1px solid var(--edge)}
+.search{
+  width:100%; background:var(--slot); border:1px solid var(--edge); border-radius:var(--r);
+  padding:7px 10px; font-size:.9rem;
+}
+.search::placeholder{color:var(--ink-faint)}
+.chips{display:flex; flex-wrap:wrap; gap:5px}
+.chip{
+  border:1px solid var(--edge); background:var(--slot); color:var(--ink-dim);
+  padding:3px 9px; border-radius:var(--r); font-size:.72rem; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; display:flex; align-items:center; gap:5px;
+}
+.chip .dot{width:7px; height:7px; border-radius:50%; background:var(--c,var(--ink-faint))}
+.chip[aria-pressed="true"]{color:var(--ink); border-color:var(--c,var(--gold)); background:color-mix(in srgb,var(--c,var(--gold)) 16%,var(--slot))}
+.grid{
+  overflow-y:auto; padding:11px 13px 14px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); grid-auto-rows:max-content; gap:9px; align-content:start;
+}
+.card{
+  position:relative; border:1px solid var(--edge); border-radius:var(--r); background:var(--slot);
+  padding:0; text-align:left; overflow:hidden; transition:.12s; display:block; width:100%;
+}
+.card .port{position:relative; display:block; width:100%; height:0; padding-top:100%; overflow:hidden; background:var(--panel-2)}
+.card .port img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block; filter:grayscale(.85) brightness(.6); transition:.15s}
+.card.own .port img{filter:none}
+.card .name{
+  display:block; font-size:.7rem; font-weight:600; letter-spacing:.01em; padding:4px 5px 3px;
+  color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.card.own .name{color:var(--ink)}
+.card::after{content:""; position:absolute; inset:0; border:1px solid transparent; pointer-events:none; border-radius:var(--r)}
+.card.own::after{border-color:color-mix(in srgb,var(--el) 55%,transparent)}
+.card.sel::after{border-color:var(--gold); box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 45%,transparent) inset}
+.card.own:hover{transform:translateY(-1px)}
+.card.spent .port img{filter:grayscale(.9) brightness(.45)}
+.card .rar{
+  position:absolute; top:0; left:0; padding:1px 5px; font-size:.62rem; font-weight:700;
+  font-family:"IBM Plex Mono",monospace; background:var(--shade); color:var(--ink-dim); backdrop-filter:blur(2px);
+}
+.card.s5 .rar{color:var(--gold)}
+.card .el{position:absolute; top:0; right:0; width:0; height:0; border-top:16px solid var(--el); border-left:16px solid transparent}
+.card .left{
+  position:absolute; bottom:26px; right:3px; font-family:"IBM Plex Mono",monospace; font-size:.68rem; font-weight:600;
+  padding:0 5px; border-radius:2px; background:var(--shade); color:var(--ok); backdrop-filter:blur(2px);
+}
+.card.spent .left{color:var(--bad)}
+.steps{display:flex; align-items:center; border-top:1px solid var(--edge); background:var(--panel-2)}
+.steps button{flex:0 0 22px; height:21px; font-size:.85rem; line-height:1; color:var(--ink-faint); font-weight:700}
+.steps button:hover{color:var(--gold); background:var(--slot)}
+.steps .u{flex:1; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-dim); letter-spacing:.04em}
+.card:not(.own) .steps{display:none}
+
+/* ---------- board ---------- */
+.board{display:flex; flex-direction:column; gap:14px}
+.teams{display:grid; grid-template-columns:repeat(auto-fill,minmax(258px,1fr)); gap:12px; padding:13px}
+.team{border:1px solid var(--edge); border-radius:var(--r); background:var(--slot); display:flex; flex-direction:column}
+.team.full{border-color:color-mix(in srgb,var(--ok) 45%,var(--edge))}
+.team > header{display:flex; align-items:center; gap:6px; padding:7px 9px; border-bottom:1px solid var(--edge); cursor:grab}
+.team > header:active{cursor:grabbing}
+.team.dragging{opacity:.35}
+.team.dropzone{outline:2px dashed var(--gold); outline-offset:2px}
+.team .grip{color:var(--ink-faint); font-size:.8rem; letter-spacing:-1px; line-height:1; cursor:grab}
+.team .mv{color:var(--ink-faint); font-size:.95rem; line-height:1; padding:0 3px}
+.team .mv:hover:not(:disabled){color:var(--gold)}
+.team .mv:disabled{opacity:.25; cursor:default}
+.team h3{font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim); font-weight:600}
+.team .pips{display:flex; gap:3px; margin-left:auto}
+.team .pip{width:8px; height:8px; border-radius:50%; background:var(--c)}
+.team .kill{color:var(--ink-faint); font-size:1rem; line-height:1; padding:0 3px}
+.team .kill:hover{color:var(--bad)}
+.slots{display:grid; grid-template-columns:repeat(3,1fr); gap:7px; padding:9px}
+.slot{
+  position:relative; aspect-ratio:3/4; border:1px dashed var(--edge-hi); border-radius:var(--r);
+  background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; transition:.12s;
+}
+.slot .ph{font-size:.66rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.1em}
+.slot.over{border-color:var(--gold); border-style:solid; background:color-mix(in srgb,var(--gold) 18%,var(--panel-2))}
+.slot.deny{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 14%,var(--panel-2))}
+.slot.filled{border-style:solid; border-color:color-mix(in srgb,var(--el) 50%,var(--edge)); background:var(--slot)}
+.slot figure{margin:0; width:100%; height:100%; display:flex; flex-direction:column}
+.slot img{width:100%; flex:1; object-fit:cover; object-position:top center; min-height:0}
+.slot figcaption{
+  font-size:.66rem; font-weight:600; padding:2px 4px; text-align:center; background:var(--panel-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid color-mix(in srgb,var(--el) 40%,var(--edge));
+}
+.slot .x{
+  position:absolute; top:1px; right:1px; width:17px; height:17px; border-radius:2px; font-size:.75rem; line-height:1;
+  background:var(--shade); color:var(--ink); opacity:0; transition:.1s; backdrop-filter:blur(2px);
+}
+.slot:hover .x{opacity:1}
+.slot .x:hover{background:var(--bad); color:#fff}
+.addteam{
+  border:1px dashed var(--edge-hi); border-radius:var(--r); min-height:120px; color:var(--ink-faint);
+  font-family:"Chakra Petch",sans-serif; font-size:.82rem; letter-spacing:.12em; text-transform:uppercase;
+}
+.addteam:hover{border-color:var(--gold); color:var(--gold); background:color-mix(in srgb,var(--gold) 7%,transparent)}
+.empty{padding:26px 16px; text-align:center; color:var(--ink-faint); font-size:.88rem}
+
+/* ---------- bench / unused ---------- */
+.bench{padding:11px 13px; display:flex; flex-wrap:wrap; gap:6px}
+.bench .b{
+  display:flex; align-items:center; gap:6px; border:1px solid var(--edge); border-left:2px solid var(--el);
+  border-radius:var(--r); background:var(--slot); padding:2px 8px 2px 4px; font-size:.76rem;
+}
+.bench .b img{width:20px; height:20px; border-radius:2px; object-fit:cover}
+.bench .b span{font-family:"IBM Plex Mono",monospace; font-size:.7rem; color:var(--gold)}
+
+/* ---------- modal ---------- */
+dialog{
+  border:1px solid var(--edge-hi); border-radius:var(--r); background:var(--panel); color:var(--ink);
+  max-width:min(560px,92vw); width:100%; padding:0;
+}
+dialog::backdrop{background:rgba(4,6,10,.72)}
+dialog header{padding:12px 15px; border-bottom:1px solid var(--edge); display:flex; align-items:center; gap:10px}
+dialog header h2{font-size:.92rem; text-transform:uppercase; letter-spacing:.12em}
+dialog .body{padding:14px 15px; display:flex; flex-direction:column; gap:10px}
+dialog p{margin:0; font-size:.85rem; color:var(--ink-dim)}
+textarea{
+  width:100%; min-height:170px; background:var(--slot); border:1px solid var(--edge); border-radius:var(--r);
+  color:var(--ink); padding:9px; font-family:"IBM Plex Mono",monospace; font-size:.76rem; resize:vertical;
+}
+dialog footer{display:flex; gap:8px; padding:0 15px 15px}
+dialog footer .btn:first-child{margin-right:auto}
+.dragging{opacity:.4}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Resonator <span>Rotation</span></h1>
+    <p>Roster charges &rarr; three-slot teams. Saved in this browser.</p>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="tools">
+    <button class="btn" id="btnTransfer">Export / Import</button>
+    <button class="btn danger" id="btnClearTeams">Clear teams</button>
+    <button class="btn danger" id="btnReset">Reset all</button>
+  </div>
+</div>
+
+<div class="notice" id="notice" hidden>
+  <b>Example roster loaded.</b> Ten resonators with charges and two starter teams, so the board is not empty. Wipe it and enter your own.
+  <button class="btn primary" id="btnStartEmpty">Start empty</button>
+</div>
+
+<div class="workspace">
+  <section class="panel roster">
+    <header>
+      <h2>Roster</h2>
+      <span class="hint">click portrait to own &middot; &minus; / + sets charges</span>
+    </header>
+    <div class="filters">
+      <input class="search" id="q" type="search" placeholder="Search resonator…" autocomplete="off">
+      <div class="chips" id="elChips"></div>
+      <div class="chips" id="miscChips">
+        <button class="chip" id="f5" aria-pressed="false">5&#9733;</button>
+        <button class="chip" id="f4" aria-pressed="false">4&#9733;</button>
+        <button class="chip" id="fOwned" aria-pressed="false">Owned</button>
+        <button class="chip" id="fAvail" aria-pressed="false">Has charges</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <div class="board">
+    <section class="panel">
+      <header>
+        <h2>Teams</h2>
+        <span class="hint">drag portraits into slots &middot; drag a team header to reorder teams</span>
+      </header>
+      <div class="teams" id="teams"></div>
+    </section>
+    <section class="panel">
+      <header>
+        <h2>Charges left</h2>
+        <span class="hint">owned resonators not yet placed</span>
+      </header>
+      <div class="bench" id="bench"></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <header><h2>Export / Import</h2></header>
+  <div class="body">
+    <p>Copy this to move your roster to another browser, or paste a saved payload and load it.</p>
+    <textarea id="payload" spellcheck="false"></textarea>
+  </div>
+  <footer>
+    <button class="btn" id="btnCopy">Copy</button>
+    <button class="btn" id="btnLoad">Load pasted</button>
+    <button class="btn primary" id="btnClose">Done</button>
+  </footer>
+</dialog>
+
+<script src="chars.js"></script>
+<script>
+(function(){
+  "use strict";
+  const KEY = "wuwa.rotation.v1";
+  const EL = ["glacio","fusion","electro","aero","spectro","havoc"];
+  const BY_ID = Object.fromEntries(CHARS.map(c => [c.i, c]));
+  const img = id => "img/" + id + ".webp";
+  const SEED_OWNED = {"camellya":2,"jinhsi":1,"shorekeeper":2,"changli":1,"carlotta":1,"verina":3,"sanhua":2,"baizhi":2,"yangyang":2,"mortefi":1};
+  const SEED_TEAMS = [["jinhsi","verina","sanhua"],["camellya","shorekeeper",null],[null,null,null]];
+
+  let state = load();
+  let sel = null;               // id currently click-selected
+  let filt = { q:"", el:new Set(), s:new Set(), owned:false, avail:false };
+
+  function blank(){ return { owned:{}, teams:[[null,null,null],[null,null,null],[null,null,null]], seeded:false }; }
+  function load(){
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw){
+        const s = JSON.parse(raw);
+        if (s && s.owned && Array.isArray(s.teams)) return s;
+      }
+    } catch(e){}
+    const s = blank();
+    s.owned = Object.fromEntries(Object.entries(SEED_OWNED).filter(([id]) => BY_ID[id]));
+    s.teams = SEED_TEAMS.map(t => t.map(id => (id && BY_ID[id]) ? id : null));
+    s.seeded = true;
+    return s;
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+
+  // ---- counts ----
+  const assignedCount = id => state.teams.reduce((n,t) => n + t.filter(x => x === id).length, 0);
+  const uses = id => state.owned[id] || 0;
+  const left = id => uses(id) - assignedCount(id);
+
+  // ---- mutations ----
+  function setUses(id, n){
+    n = Math.max(0, Math.min(12, n));
+    const placed = assignedCount(id);
+    if (n === 0){
+      for (const t of state.teams) for (let i=0;i<3;i++) if (t[i] === id) t[i] = null;
+      delete state.owned[id];
+    } else {
+      if (n < placed){                       // drop the surplus from the last teams first
+        let over = placed - n;
+        for (let ti = state.teams.length-1; ti >= 0 && over > 0; ti--)
+          for (let i=2; i>=0 && over>0; i--)
+            if (state.teams[ti][i] === id){ state.teams[ti][i] = null; over--; }
+      }
+      state.owned[id] = n;
+    }
+    if (sel && left(sel) <= 0) sel = null;
+    commit();
+  }
+  function place(id, ti, si){
+    const team = state.teams[ti];
+    if (!team) return;
+    const prev = team[si];
+    if (prev === id) return;
+    if (team.includes(id)) return;           // no duplicate inside one team
+    if (left(id) <= 0 && prev !== id) return;
+    team[si] = id;
+    if (sel === id && left(id) <= 0) sel = null;
+    commit();
+  }
+  function move(from, to){
+    const a = state.teams[from.t], b = state.teams[to.t];
+    if (!a || !b) return;
+    const id = a[from.s], other = b[to.s];
+    if (!id) return;
+    if (from.t === to.t && from.s === to.s) return;
+    if (b.includes(id) && b[to.s] !== id) return;
+    if (other && a.includes(other) && a[from.s] !== other) return;
+    a[from.s] = other || null;
+    b[to.s] = id;
+    commit();
+  }
+  function clearSlot(ti, si){ state.teams[ti][si] = null; commit(); }
+  function addTeam(){ state.teams.push([null,null,null]); commit(); }
+  function moveTeam(from, to){
+    if (from === to || from < 0 || to < 0 || from >= state.teams.length || to >= state.teams.length) return;
+    const [team] = state.teams.splice(from, 1);
+    state.teams.splice(to, 0, team);
+    commit();
+  }
+  function removeTeam(ti){ state.teams.splice(ti,1); if (!state.teams.length) addTeam(); else commit(); }
+  function commit(){ state.seeded = false; save(); render(); }
+
+  // ---- rendering ----
+  const $ = s => document.querySelector(s);
+  const elChips = $("#elChips");
+  EL.forEach(e => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.setAttribute("aria-pressed","false");
+    b.style.setProperty("--c", "var(--el-" + e + ")");
+    b.innerHTML = '<i class="dot"></i>' + e;
+    b.onclick = () => { filt.el.has(e) ? filt.el.delete(e) : filt.el.add(e); b.setAttribute("aria-pressed", filt.el.has(e)); renderGrid(); };
+    elChips.appendChild(b);
+  });
+  function toggleChip(node, key){
+    node.onclick = () => { filt[key] = !filt[key]; node.setAttribute("aria-pressed", filt[key]); renderGrid(); };
+  }
+  toggleChip($("#fOwned"), "owned");
+  toggleChip($("#fAvail"), "avail");
+  [["#f5",5],["#f4",4]].forEach(([sel2,n]) => {
+    const node = $(sel2);
+    node.onclick = () => { filt.s.has(n) ? filt.s.delete(n) : filt.s.add(n); node.setAttribute("aria-pressed", filt.s.has(n)); renderGrid(); };
+  });
+  $("#q").oninput = e => { filt.q = e.target.value.trim().toLowerCase(); renderGrid(); };
+
+  function passes(c){
+    if (filt.q && !c.n.toLowerCase().includes(filt.q)) return false;
+    if (filt.el.size && !filt.el.has(c.e)) return false;
+    if (filt.s.size && !filt.s.has(c.s)) return false;
+    if (filt.owned && !uses(c.i)) return false;
+    if (filt.avail && left(c.i) <= 0) return false;
+    return true;
+  }
+
+  function renderGrid(){
+    const g = $("#grid");
+    g.textContent = "";
+    const list = CHARS.filter(passes);
+    if (!list.length){
+      const p = document.createElement("p");
+      p.className = "empty"; p.style.gridColumn = "1/-1";
+      p.textContent = "No resonator matches these filters.";
+      g.appendChild(p); return;
+    }
+    for (const c of list){
+      const n = uses(c.i), rest = left(c.i), own = n > 0;
+      const card = document.createElement("div");
+      card.className = "card" + (own ? " own" : "") + (own && rest <= 0 ? " spent" : "") + (sel === c.i ? " sel" : "") + " s" + c.s;
+      card.style.setProperty("--el", "var(--el-" + c.e + ")");
+      card.innerHTML =
+        '<div class="port">' +
+          '<img src="' + img(c.i) + '" alt="" loading="lazy" draggable="false">' +
+          '<i class="el"></i><b class="rar">' + c.s + '★</b>' +
+          (own ? '<b class="left num">' + rest + '/' + n + '</b>' : '') +
+        '</div>' +
+        '<b class="name">' + c.n + '</b>' +
+        '<div class="steps"><button type="button" data-d="-1" title="One charge fewer">&minus;</button>' +
+        '<span class="u">' + n + ' charge' + (n === 1 ? "" : "s") + '</span>' +
+        '<button type="button" data-d="1" title="One charge more">+</button></div>';
+
+      const port = card.querySelector(".port");
+      port.onclick = () => {
+        if (!own){ setUses(c.i, 1); return; }
+        sel = (sel === c.i || rest <= 0) ? null : c.i;
+        renderGrid();
+      };
+      port.title = own ? (rest > 0 ? "Click to select, then click a slot" : "All charges placed") : "Click to add to your roster";
+      if (own && rest > 0){
+        card.draggable = true;
+        card.ondragstart = ev => {
+          ev.dataTransfer.setData("application/x-wuwa-char", "1");
+          ev.dataTransfer.setData("text/plain", JSON.stringify({ id: c.i }));
+          ev.dataTransfer.effectAllowed = "copyMove";
+          card.classList.add("dragging");
+        };
+        card.ondragend = () => card.classList.remove("dragging");
+      }
+      card.querySelectorAll(".steps button").forEach(b => {
+        b.onclick = ev => { ev.stopPropagation(); setUses(c.i, n + Number(b.dataset.d)); };
+      });
+      g.appendChild(card);
+    }
+  }
+
+  function slotDnD(slot, ti, si){
+    slot.ondragover = ev => {
+      if (!ev.dataTransfer.types.includes("application/x-wuwa-char")) return;  // team drags bubble to the card
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "move";
+      slot.classList.add("over");
+    };
+    slot.ondragleave = () => slot.classList.remove("over","deny");
+    slot.ondrop = ev => {
+      if (!ev.dataTransfer.types.includes("application/x-wuwa-char")) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      slot.classList.remove("over","deny");
+      let d; try { d = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch(e){ return; }
+      if (!d) return;
+      if (d.from) move(d.from, { t: ti, s: si });
+      else if (d.id) place(d.id, ti, si);
+    };
+    slot.onclick = ev => {
+      if (ev.target.closest(".x")) return;
+      if (sel){ place(sel, ti, si); return; }
+      const id = state.teams[ti][si];
+      if (id){ sel = left(id) > 0 ? id : null; renderGrid(); }
+    };
+  }
+
+  function renderTeams(){
+    const wrap = $("#teams");
+    wrap.textContent = "";
+    state.teams.forEach((team, ti) => {
+      const filled = team.filter(Boolean);
+      const node = document.createElement("article");
+      node.className = "team" + (filled.length === 3 ? " full" : "");
+      const head = document.createElement("header");
+      head.innerHTML = '<i class="grip" aria-hidden="true">&#9782;</i><h3>Team ' + (ti+1) + '</h3><div class="pips"></div>' +
+                       '<button class="mv" data-d="-1" title="Move team earlier" ' + (ti === 0 ? 'disabled' : '') + '>&#8249;</button>' +
+                       '<button class="mv" data-d="1" title="Move team later" ' + (ti === state.teams.length-1 ? 'disabled' : '') + '>&#8250;</button>' +
+                       '<button class="kill" title="Delete this team">&#10005;</button>';
+      head.draggable = true;
+      head.title = "Drag to reorder this team";
+      head.ondragstart = ev => {
+        ev.dataTransfer.setData("application/x-wuwa-team", "1");
+        ev.dataTransfer.setData("text/plain", JSON.stringify({ team: ti }));
+        ev.dataTransfer.effectAllowed = "move";
+        node.classList.add("dragging");
+      };
+      head.ondragend = () => {
+        node.classList.remove("dragging");
+        document.querySelectorAll(".team.dropzone").forEach(n => n.classList.remove("dropzone"));
+      };
+      head.querySelectorAll(".mv").forEach(b => {
+        b.onclick = () => moveTeam(ti, ti + Number(b.dataset.d));
+      });
+      const pips = head.querySelector(".pips");
+      [...new Set(filled.map(id => BY_ID[id].e))].forEach(e => {
+        const p = document.createElement("i");
+        p.className = "pip"; p.style.setProperty("--c","var(--el-"+e+")"); p.title = e;
+        pips.appendChild(p);
+      });
+      head.querySelector(".kill").onclick = () => removeTeam(ti);
+      node.ondragover = ev => {
+        if (!ev.dataTransfer.types.includes("application/x-wuwa-team")) return;
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+        node.classList.add("dropzone");
+      };
+      node.ondragleave = ev => {
+        if (ev.relatedTarget && node.contains(ev.relatedTarget)) return;
+        node.classList.remove("dropzone");
+      };
+      node.ondrop = ev => {
+        if (!ev.dataTransfer.types.includes("application/x-wuwa-team")) return;
+        ev.preventDefault();
+        node.classList.remove("dropzone");
+        let d; try { d = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch(e){ return; }
+        if (d && typeof d.team === "number") moveTeam(d.team, ti);
+      };
+      node.appendChild(head);
+
+      const slots = document.createElement("div");
+      slots.className = "slots";
+      team.forEach((id, si) => {
+        const slot = document.createElement("div");
+        slot.className = "slot" + (id ? " filled" : "");
+        if (id){
+          const c = BY_ID[id];
+          slot.style.setProperty("--el", "var(--el-" + c.e + ")");
+          slot.innerHTML = '<figure><img src="' + img(id) + '" alt="" draggable="false">' +
+                           '<figcaption>' + c.n + '</figcaption></figure>' +
+                           '<button class="x" title="Remove from team">&#10005;</button>';
+          slot.querySelector(".x").onclick = ev => { ev.stopPropagation(); clearSlot(ti, si); };
+          slot.draggable = true;
+          slot.ondragstart = ev => {
+            ev.dataTransfer.setData("application/x-wuwa-char", "1");
+            ev.dataTransfer.setData("text/plain", JSON.stringify({ from: { t: ti, s: si } }));
+            ev.dataTransfer.effectAllowed = "move";
+            slot.classList.add("dragging");
+          };
+          slot.ondragend = () => slot.classList.remove("dragging");
+        } else {
+          slot.innerHTML = '<span class="ph">empty</span>';
+        }
+        slotDnD(slot, ti, si);
+        slots.appendChild(slot);
+      });
+      node.appendChild(slots);
+      wrap.appendChild(node);
+    });
+    const add = document.createElement("button");
+    add.className = "addteam"; add.textContent = "+ Add team";
+    add.onclick = addTeam;
+    wrap.appendChild(add);
+  }
+
+  function renderBench(){
+    const b = $("#bench");
+    b.textContent = "";
+    const rest = CHARS.filter(c => left(c.i) > 0);
+    if (!rest.length){
+      const p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = Object.keys(state.owned).length
+        ? "Every charge is on the board."
+        : "No resonators owned yet — click portraits on the left to build your roster.";
+      b.appendChild(p); return;
+    }
+    for (const c of rest){
+      const n = document.createElement("div");
+      n.className = "b";
+      n.style.setProperty("--el", "var(--el-" + c.e + ")");
+      n.innerHTML = '<img src="' + img(c.i) + '" alt="" loading="lazy">' + c.n + ' <span>&times;' + left(c.i) + '</span>';
+      b.appendChild(n);
+    }
+  }
+
+  function renderStats(){
+    const owned = Object.keys(state.owned).length;
+    const charges = Object.values(state.owned).reduce((a,b) => a+b, 0);
+    const placed = state.teams.reduce((n,t) => n + t.filter(Boolean).length, 0);
+    const full = state.teams.filter(t => t.filter(Boolean).length === 3).length;
+    const rows = [
+      ["Resonators", owned, false],
+      ["Charges", charges, false],
+      ["Placed", placed + "/" + charges, false],
+      ["Full teams", full, true],
+      ["Teams open", state.teams.length - full, false]
+    ];
+    $("#stats").innerHTML = rows.map(([l,v,hot]) =>
+      '<div class="stat' + (hot ? " hot" : "") + '"><b>' + v + '</b><span>' + l + '</span></div>').join("");
+  }
+
+  function render(){ renderStats(); renderGrid(); renderTeams(); renderBench(); $("#notice").hidden = !state.seeded; }
+
+  // ---- tools ----
+  $("#btnStartEmpty").onclick = () => { state = blank(); commit(); };
+  $("#btnClearTeams").onclick = () => {
+    state.teams = state.teams.map(() => [null,null,null]);
+    sel = null; commit();
+  };
+  $("#btnReset").onclick = () => {
+    if (!confirm("Clear your whole roster and every team?")) return;
+    state = blank(); sel = null; commit();
+  };
+  const dlg = $("#dlg");
+  $("#btnTransfer").onclick = () => {
+    $("#payload").value = JSON.stringify({ owned: state.owned, teams: state.teams });
+    dlg.showModal();
+  };
+  $("#btnClose").onclick = () => dlg.close();
+  $("#btnCopy").onclick = async () => {
+    const ta = $("#payload");
+    ta.select();
+    try { await navigator.clipboard.writeText(ta.value); $("#btnCopy").textContent = "Copied"; }
+    catch(e){ document.execCommand("copy"); $("#btnCopy").textContent = "Copied"; }
+    setTimeout(() => { $("#btnCopy").textContent = "Copy"; }, 1400);
+  };
+  $("#btnLoad").onclick = () => {
+    let d;
+    try { d = JSON.parse($("#payload").value); } catch(e){ alert("That is not valid JSON — paste the whole payload, braces included."); return; }
+    if (!d || typeof d.owned !== "object" || !Array.isArray(d.teams)){ alert("Payload is missing 'owned' or 'teams'."); return; }
+    const owned = {};
+    for (const [id,n] of Object.entries(d.owned)) if (BY_ID[id] && Number(n) > 0) owned[id] = Math.min(12, Math.round(Number(n)));
+    const teams = d.teams.filter(Array.isArray).map(t => {
+      const row = [null,null,null];
+      for (let i=0;i<3;i++){ const id = t[i]; if (id && owned[id] && !row.includes(id)) row[i] = id; }
+      return row;
+    });
+    state = { owned, teams: teams.length ? teams : [[null,null,null]], seeded:false };
+    // trim placements that exceed charges
+    for (const id of Object.keys(owned)){
+      let over = assignedCount(id) - owned[id];
+      for (let ti = state.teams.length-1; ti >= 0 && over > 0; ti--)
+        for (let i=2;i>=0 && over>0;i--)
+          if (state.teams[ti][i] === id){ state.teams[ti][i] = null; over--; }
+    }
+    sel = null; commit(); dlg.close();
+  };
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && sel){ sel = null; renderGrid(); } });
+
+  // hot-reload state carry
+  window.claude?.hot?.snapshot?.(() => ({ state, filt: { ...filt, el:[...filt.el], s:[...filt.s] } }));
+  const boot = data => {
+    if (data && data.state) state = data.state;
+    if (data && data.filt) filt = { ...data.filt, el:new Set(data.filt.el), s:new Set(data.filt.s) };
+    render();
+  };
+  window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+})();
+</script>

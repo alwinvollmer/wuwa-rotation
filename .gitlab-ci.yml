@@ -1,0 +1,13 @@
+# GitLab Pages: publish the static app as-is.
+pages:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - mkdir -p public
+    - cp index.html chars.js public/
+    - cp -r img public/img
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
