@@ -79,12 +79,17 @@ Each character page on arabwuwa carries a **Weapon comparison / Relative damage*
 section: weapons at various refinements, scored against that character's signature at
 R1 (= 100%). `tools/update-weapons.py` scrapes those cards from all 60 character pages,
 takes the 100% entry as the signature and the best standard-banner weapon listed as the
-fallback, preferring the R1 row — where only a higher refinement is published (Qingxiao,
-Chisa) the app says so in the tooltip.
+fallback, at **the highest refinement published** — a standard 5-star is the one weapon
+you realistically take to R5. Where only R1 or R3 is charted the app says so on the weapon
+line. Where the page compares no standard weapon at all, the best **4-star** it does list
+stands in instead, labelled as such (Mornye → Discord R5).
 
-37 characters publish a comparison; factors run 0.713–1.000 with a median of 0.825. The
-other 20 — Verina, Shorekeeper, Baizhi, Mortefi and friends — publish none and simply get
-no toggle, which costs nothing because only the lead slot is scaled.
+38 characters have a factor; they run 0.713–1.025 with a median of 0.840. Above 1.000 is
+real, not a bug: Yangyang's Emerald of Genesis at R5 beats her signature at R1, and the
+tag then reads cyan rather than red. The remaining 22 get no toggle — 16 publish no
+comparison at all (Verina, Shorekeeper, Baizhi, Mortefi and other supports), Jingran is
+compared only against a limited 5-star, Zhezhi and Rover Aero list nothing but their own
+weapon, and Souming, Hsin and Rover Electro have no page yet.
 
 The **Sequence damage comparison** chart on the same pages is read by
 `tools/update-sequences.py` (42 characters publish one) off its `data-values` and

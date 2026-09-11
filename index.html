@@ -299,10 +299,13 @@ button{cursor:pointer; background:none; border:none}
 .team .match .bucket{text-transform:uppercase; letter-spacing:.08em; font-size:.64rem; color:var(--ink-faint)}
 .team .match .var{margin-left:auto; font-size:.64rem; color:var(--ink-faint)}
 .team .match .wepTag{
-  font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; color:var(--bad);
-  border:1px solid color-mix(in srgb,var(--bad) 40%,transparent); border-radius:2px; padding:0 4px;
+  font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600;
+  border-radius:2px; padding:0 4px;
 }
-.team .match.wep .dps{color:var(--bad)}
+.team .match .wepTag.down{color:var(--bad); border:1px solid color-mix(in srgb,var(--bad) 40%,transparent)}
+.team .match .wepTag.up{color:var(--cyan); border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent)}
+.team .match.wdown .dps{color:var(--bad)}
+.team .match.wup .dps{color:var(--cyan)}
 .team .match .seqTag{
   font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600;
   border-radius:2px; padding:0 4px;
@@ -542,7 +545,10 @@ dialog footer .btn:first-child{margin-right:auto}
   const sigFactor = id => (hasSig(id) || !weaponOf(id)) ? 1 : weaponOf(id).f;
   // arabwuwa lists a few standard weapons only at a higher refinement; say so
   // rather than passing the number off as the R1 you would actually hold.
-  const wepNote = w => (w && w.r && w.r !== 1) ? " (listed at R" + w.r + ")" : "";
+  const wepNote = w => (w && w.r && w.r !== 5) ? " (only R" + w.r + " published)" : " R5";
+  // Most fallbacks are a standard-banner 5-star; where the page compares none,
+  // the best 4-star it does list stands in instead.
+  const wepKind = w => (w && w.k === "4star") ? "4&#9733; stand-in" : "standard";
   function toggleSig(id){
     const g = GROUP(id);
     if (state.nosig[g]) delete state.nosig[g]; else state.nosig[g] = true;
@@ -768,7 +774,8 @@ dialog footer .btn:first-child{margin-right:auto}
               (hasSig(c.i)
                 ? "Has " + weaponOf(c.i).s + " (signature) — click if not"
                 : "No " + weaponOf(c.i).s + ": teams led by them count as " +
-                  Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + wepNote(weaponOf(c.i)) + ")") +
+                  Math.round(weaponOf(c.i).f * 100) + "% (" + weaponOf(c.i).b + wepNote(weaponOf(c.i)) +
+                  (weaponOf(c.i).k === "4star" ? ", 4-star stand-in" : "") + ")") +
               '">&#9876;</button>'
             : "") +
         '</div>' +
@@ -933,12 +940,13 @@ dialog footer .btn:first-child{margin-right:auto}
         const swapped = !match && (!team[2] || GROUP(team[2]) !== GROUP(src.c[2]));
         const sc = scaled(src.d, lead, swapped);
         const strip = document.createElement("div");
-        strip.className = "match" + (match ? "" : " est") + (sc.w ? " wep" : "");
+        strip.className = "match" + (match ? "" : " est") +
+          (sc.w ? (sc.f < 1 ? " wep wdown" : " wep wup") : "");
         strip.innerHTML = '<b class="num">#' + src.r + '</b>' +
           '<span class="dps num">' + (match ? "" : "~") + fmt(sc.value) + ' DPS</span>' +
           '<span class="bucket">' + (src.b || "?") + '</span>' +
-          (sc.w ? '<span class="wepTag" title="' + BY_ID[lead].n + ' without ' + sc.w.s + ': scaled to ' +
-                  sc.w.b + wepNote(sc.w) + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
+          (sc.w ? '<span class="wepTag ' + (sc.f < 1 ? "down" : "up") + '" title="' + BY_ID[lead].n + ' without ' + sc.w.s + ': scaled to ' +
+                  sc.w.b + wepNote(sc.w) + (sc.w.k === "4star" ? " (4-star stand-in)" : "") + '">&#9876; ' + Math.round(sc.f * 100) + '%</span>' : "") +
           (sc.s !== null ? '<span class="seqTag ' + (sc.q >= 1 ? "up" : "down") + '" title="' + BY_ID[lead].n +
                   ' at S' + sc.s + ' — ' + Math.round(sc.q * 100) + '% of the projection, which calculates them at S' +
                   ((seqOf(lead) || {}).s0 || 0) + '">S' + sc.s + ' ' + Math.round(sc.q * 100) + '%</span>' : "") +
@@ -1081,7 +1089,7 @@ dialog footer .btn:first-child{margin-right:auto}
     return {
       value: dps * f * q * p,
       f, q, p,
-      w: f < 1 ? weaponOf(leadId) : null,
+      w: Math.abs(f - 1) > 0.001 ? weaponOf(leadId) : null,
       s: (leadId && Math.abs(q - 1) > 0.001) ? seqAt(leadId) : null
     };
   }
@@ -1210,8 +1218,8 @@ dialog footer .btn:first-child{margin-right:auto}
           '<span class="mark">&#9876;</span>' +
           (hasSig(id)
             ? '<span>' + weaponOf(id).s + '</span><i>signature &middot; full damage</i>'
-            : '<span>' + weaponOf(id).b + '</span><i>standard &middot; ' +
-              Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + wepNote(weaponOf(id)) + '</i>') +
+            : '<span>' + weaponOf(id).b + wepNote(weaponOf(id)) + '</span><i>' + wepKind(weaponOf(id)) +
+              ' &middot; ' + Math.round(weaponOf(id).f * 100) + '% of ' + weaponOf(id).s + '</i>') +
           '</button>'
         : "") + '</div>' +
       '<a class="btn out" href="https://arabwuwa.com/characters/' + id + '/" target="_blank" rel="noopener">arabwuwa &#8599;</a>';
