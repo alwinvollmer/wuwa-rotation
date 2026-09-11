@@ -154,7 +154,7 @@ button{cursor:pointer; background:none; border:none}
 }
 .card.spent .left{color:var(--bad)}
 .card .shared{
-  position:absolute; bottom:19px; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
+  position:absolute; bottom:0; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
   letter-spacing:.08em; text-transform:uppercase; background:var(--shade); color:var(--cyan); backdrop-filter:blur(2px);
 }
 .steps{display:flex; align-items:center; border-top:1px solid var(--edge); background:var(--panel-2)}
@@ -175,9 +175,9 @@ button{cursor:pointer; background:none; border:none}
 .card .seq.s6{color:var(--ground); background:var(--cyan)}
 .card .seq:hover{color:var(--ground); background:var(--cyan)}
 .card .sig{
-  position:absolute; bottom:0; left:0; width:19px; height:19px; line-height:19px; text-align:center;
+  position:absolute; top:34px; left:0; width:19px; height:17px; line-height:17px; text-align:center;
   font-size:.68rem; color:var(--gold); background:var(--shade); backdrop-filter:blur(2px);
-  border-top-right-radius:var(--r);
+  border-bottom-right-radius:var(--r);
 }
 .card .sig[aria-pressed="false"]{color:var(--ink-faint)}
 .card .sig[aria-pressed="false"]::after{             /* struck through: weapon not held */
