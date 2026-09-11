@@ -4,7 +4,7 @@ A small single-page web app for the Wuthering Waves game modes that ask for **ma
 
 Mark which resonators you own, set how many **charges** (uses) each one has this season, then drag them into three-slot teams. Everything is stored in your browser.
 
-**Live:** https://alwin-vollmer.gitlab.io/wuwa-rotation/
+**Live:** https://alwinvollmer.github.io/wuwa-rotation/
 
 ## What it does
 
@@ -32,7 +32,6 @@ The first visit loads an example roster so the board is not empty; **Start empty
 | `chars.js` | Generated character list (`id`, `name`, `element`, `weapon`, `stars`) |
 | `img/<id>.webp` | Generated portraits, 192 px |
 | `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
-| `.gitlab-ci.yml` | GitLab Pages deploy |
 
 ## Updating for a new patch
 
@@ -48,7 +47,7 @@ Two things the script handles that are easy to get wrong by hand:
 - The image path must be taken from each record's `images.small`. Most portraits live under `/images/characters-filter/`, but the four Rovers live under `/images/characters-profile/` — a constructed path 404s for them.
 - The JSON's first entry is a `__meta` reference object, not a character.
 
-Pushing to `main` redeploys Pages automatically.
+Pushing to `main` redeploys GitHub Pages automatically.
 
 ## License
 
