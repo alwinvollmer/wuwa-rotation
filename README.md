@@ -12,6 +12,7 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 - **Teams** — three slots each. Drag a portrait from the roster into a slot, drag a slot onto another slot to swap, or click a portrait and then click a slot (works on touch). A resonator cannot appear twice in one team, and cannot be placed with no charges left.
 - **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
+- **Recommended teams** — the `i` button on any portrait opens that resonator's teams from the arabwuwa.com Team DPS projection: rank, three-rotation DPS and difficulty, with members you cannot field greyed out and the reason spelled out. Teams you *can* field sort to the top and have a one-click **Add team** that places them on the board and spends the charges.
 - **Charges left** — everything owned but not yet placed, so you can see what is still spendable.
 - **Filters** — search, element, rarity, owned only, has charges.
 - **Export / Import** — a JSON payload you can copy to another browser.
@@ -31,7 +32,9 @@ The first visit loads an example roster so the board is not empty; **Start empty
 | `index.html` | The whole app — markup, styles and logic, no build step |
 | `chars.js` | Generated character list (`id`, `name`, `element`, `weapon`, `stars`) |
 | `img/<id>.webp` | Generated portraits, 192 px |
+| `teams.js` | Generated team recommendations (152 teams) |
 | `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
+| `tools/update-teams.py` | Regenerates `teams.js` |
 
 ## Updating for a new patch
 
@@ -39,13 +42,15 @@ Character data and portraits come from [arabwuwa.com](https://arabwuwa.com/chara
 
 ```bash
 python3 tools/update-characters.py
-git add chars.js img && git commit -m "chars: update for <version>" && git push
+python3 tools/update-teams.py
+git add chars.js teams.js img && git commit -m "data: update for <version>" && git push
 ```
 
 Two things the script handles that are easy to get wrong by hand:
 
 - The image path must be taken from each record's `images.small`. Most portraits live under `/images/characters-filter/`, but the four Rovers live under `/images/characters-profile/` — a constructed path 404s for them.
 - The JSON's first entry is a `__meta` reference object, not a character.
+- Team recommendations come from a second dataset, `/data/team-dps-generated/<revision>/listing.en.json`, whose records are tuple-encoded against a `tupleFields` map and whose `<revision>` hash changes on every rebuild — `update-teams.py` reads the current one off the `/team-dps/` page instead of hard-coding it.
 
 Pushing to `main` redeploys GitHub Pages automatically.
 
