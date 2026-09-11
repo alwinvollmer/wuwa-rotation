@@ -135,10 +135,14 @@ button{cursor:pointer; background:none; border:none}
   padding:0 5px; border-radius:2px; background:var(--shade); color:var(--ok); backdrop-filter:blur(2px);
 }
 .card.spent .left{color:var(--bad)}
+.card .shared{
+  position:absolute; bottom:0; left:0; padding:0 4px; font-size:.58rem; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; background:var(--shade); color:var(--cyan); backdrop-filter:blur(2px);
+}
 .steps{display:flex; align-items:center; border-top:1px solid var(--edge); background:var(--panel-2)}
 .steps button{flex:0 0 22px; height:21px; font-size:.85rem; line-height:1; color:var(--ink-faint); font-weight:700}
 .steps button:hover{color:var(--gold); background:var(--slot)}
-.steps .u{flex:1; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:.66rem; color:var(--ink-dim); letter-spacing:.04em}
+.steps .u{flex:1; text-align:center; font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:600; color:var(--ink-dim); white-space:nowrap}
 .card:not(.own) .steps{display:none}
 
 /* ---------- board ---------- */
@@ -291,8 +295,14 @@ dialog footer .btn:first-child{margin-right:auto}
   const KEY = "wuwa.rotation.v1";
   const EL = ["glacio","fusion","electro","aero","spectro","havoc"];
   const BY_ID = Object.fromEntries(CHARS.map(c => [c.i, c]));
+  // Rover counts as ONE resonator however many elements it has: the four
+  // rover-* records share a single charge pool and one slot per team.
+  const GROUP = id => (id && id.slice(0,6) === "rover-") ? "rover" : id;
+  const GROUP_NAME = { rover: "Rover" };
+  const GROUP_FACE = { rover: (CHARS.find(c => GROUP(c.i) === "rover") || {}).i };
+  const isShared = id => GROUP(id) !== id;
   const img = id => "img/" + id + ".webp";
-  const SEED_OWNED = {"camellya":2,"jinhsi":1,"shorekeeper":2,"changli":1,"carlotta":1,"verina":3,"sanhua":2,"baizhi":2,"yangyang":2,"mortefi":1};
+  const SEED_OWNED = {"camellya":2,"jinhsi":1,"shorekeeper":2,"changli":1,"carlotta":1,"verina":3,"sanhua":2,"baizhi":2,"yangyang":2,"mortefi":1,"rover":1};
   const SEED_TEAMS = [["jinhsi","verina","sanhua"],["camellya","shorekeeper",null],[null,null,null]];
 
   let state = load();
@@ -300,16 +310,43 @@ dialog footer .btn:first-child{margin-right:auto}
   let filt = { q:"", el:new Set(), s:new Set(), owned:false, avail:false };
 
   function blank(){ return { owned:{}, teams:[[null,null,null],[null,null,null],[null,null,null]], seeded:false }; }
+  function migrate(s){
+    const owned = {};
+    for (const [k,v] of Object.entries(s.owned || {})){
+      if (!BY_ID[k] && !GROUP_NAME[k]) continue;
+      const g = GROUP(k), n = Math.round(Number(v) || 0);
+      if (n > 0) owned[g] = Math.max(owned[g] || 0, Math.min(12, n));
+    }
+    s.owned = owned;
+    s.teams = (Array.isArray(s.teams) ? s.teams : []).filter(Array.isArray).map(t => {
+      const row = [null,null,null], seen = new Set();
+      for (let i=0;i<3;i++){
+        const id = t[i];
+        if (!id || !BY_ID[id] || !owned[GROUP(id)] || seen.has(GROUP(id))) continue;
+        seen.add(GROUP(id)); row[i] = id;
+      }
+      return row;
+    });
+    if (!s.teams.length) s.teams = [[null,null,null]];
+    for (const g of Object.keys(owned)){            // trim placements beyond the pool
+      const placed = s.teams.reduce((n,t) => n + t.filter(x => GROUP(x) === g).length, 0);
+      let over = placed - owned[g];
+      for (let ti = s.teams.length-1; ti >= 0 && over > 0; ti--)
+        for (let i=2;i>=0 && over>0;i--)
+          if (GROUP(s.teams[ti][i]) === g){ s.teams[ti][i] = null; over--; }
+    }
+    return s;
+  }
   function load(){
     try {
       const raw = localStorage.getItem(KEY);
       if (raw){
         const s = JSON.parse(raw);
-        if (s && s.owned && Array.isArray(s.teams)) return s;
+        if (s && s.owned && Array.isArray(s.teams)) return migrate(s);
       }
     } catch(e){}
     const s = blank();
-    s.owned = Object.fromEntries(Object.entries(SEED_OWNED).filter(([id]) => BY_ID[id]));
+    s.owned = Object.fromEntries(Object.entries(SEED_OWNED).filter(([id]) => BY_ID[id] || GROUP_NAME[id]));
     s.teams = SEED_TEAMS.map(t => t.map(id => (id && BY_ID[id]) ? id : null));
     s.seeded = true;
     return s;
@@ -317,25 +354,31 @@ dialog footer .btn:first-child{margin-right:auto}
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 
   // ---- counts ----
-  const assignedCount = id => state.teams.reduce((n,t) => n + t.filter(x => x === id).length, 0);
-  const uses = id => state.owned[id] || 0;
+  const assignedCount = id => {
+    const g = GROUP(id);
+    return state.teams.reduce((n,t) => n + t.filter(x => GROUP(x) === g).length, 0);
+  };
+  const uses = id => state.owned[GROUP(id)] || 0;
   const left = id => uses(id) - assignedCount(id);
+  const hasGroup = (team, id, exceptSlot) =>
+    team.some((x, i) => i !== exceptSlot && GROUP(x) === GROUP(id));
 
   // ---- mutations ----
   function setUses(id, n){
+    const g = GROUP(id);
     n = Math.max(0, Math.min(12, n));
     const placed = assignedCount(id);
     if (n === 0){
-      for (const t of state.teams) for (let i=0;i<3;i++) if (t[i] === id) t[i] = null;
-      delete state.owned[id];
+      for (const t of state.teams) for (let i=0;i<3;i++) if (GROUP(t[i]) === g) t[i] = null;
+      delete state.owned[g];
     } else {
       if (n < placed){                       // drop the surplus from the last teams first
         let over = placed - n;
         for (let ti = state.teams.length-1; ti >= 0 && over > 0; ti--)
           for (let i=2; i>=0 && over>0; i--)
-            if (state.teams[ti][i] === id){ state.teams[ti][i] = null; over--; }
+            if (GROUP(state.teams[ti][i]) === g){ state.teams[ti][i] = null; over--; }
       }
-      state.owned[id] = n;
+      state.owned[g] = n;
     }
     if (sel && left(sel) <= 0) sel = null;
     commit();
@@ -345,8 +388,8 @@ dialog footer .btn:first-child{margin-right:auto}
     if (!team) return;
     const prev = team[si];
     if (prev === id) return;
-    if (team.includes(id)) return;           // no duplicate inside one team
-    if (left(id) <= 0 && prev !== id) return;
+    if (hasGroup(team, id, si)) return;      // no duplicate (and only one Rover form) per team
+    if (left(id) <= 0 && GROUP(prev) !== GROUP(id)) return;
     team[si] = id;
     if (sel === id && left(id) <= 0) sel = null;
     commit();
@@ -357,8 +400,8 @@ dialog footer .btn:first-child{margin-right:auto}
     const id = a[from.s], other = b[to.s];
     if (!id) return;
     if (from.t === to.t && from.s === to.s) return;
-    if (b.includes(id) && b[to.s] !== id) return;
-    if (other && a.includes(other) && a[from.s] !== other) return;
+    if (hasGroup(b, id, from.t === to.t ? from.s : -1) && GROUP(b[to.s]) !== GROUP(id)) return;
+    if (other && hasGroup(a, other, from.t === to.t ? to.s : from.s) && GROUP(a[from.s]) !== GROUP(other)) return;
     a[from.s] = other || null;
     b[to.s] = id;
     commit();
@@ -425,10 +468,11 @@ dialog footer .btn:first-child{margin-right:auto}
           '<img src="' + img(c.i) + '" alt="" loading="lazy" draggable="false">' +
           '<i class="el"></i><b class="rar">' + c.s + '★</b>' +
           (own ? '<b class="left num">' + rest + '/' + n + '</b>' : '') +
+          (isShared(c.i) ? '<b class="shared" title="Rover counts as one resonator: all forms share these charges">shared</b>' : '') +
         '</div>' +
         '<b class="name">' + c.n + '</b>' +
         '<div class="steps"><button type="button" data-d="-1" title="One charge fewer">&minus;</button>' +
-        '<span class="u">' + n + ' charge' + (n === 1 ? "" : "s") + '</span>' +
+        '<span class="u num" title="Charges available this season">' + n + '</span>' +
         '<button type="button" data-d="1" title="One charge more">+</button></div>';
 
       const port = card.querySelector(".port");
@@ -437,7 +481,10 @@ dialog footer .btn:first-child{margin-right:auto}
         sel = (sel === c.i || rest <= 0) ? null : c.i;
         renderGrid();
       };
-      port.title = own ? (rest > 0 ? "Click to select, then click a slot" : "All charges placed") : "Click to add to your roster";
+      port.title = own
+        ? (rest > 0 ? "Click to select, then click a slot" : "All charges placed")
+        : "Click to add to your roster";
+      if (isShared(c.i)) port.title += " — Rover is one resonator: every form draws on the same charges";
       if (own && rest > 0){
         card.draggable = true;
         card.ondragstart = ev => {
@@ -572,7 +619,12 @@ dialog footer .btn:first-child{margin-right:auto}
   function renderBench(){
     const b = $("#bench");
     b.textContent = "";
-    const rest = CHARS.filter(c => left(c.i) > 0);
+    const seen = new Set();
+    const rest = CHARS.filter(c => {
+      const g = GROUP(c.i);
+      if (seen.has(g) || left(c.i) <= 0) return false;
+      seen.add(g); return true;
+    });
     if (!rest.length){
       const p = document.createElement("p");
       p.className = "empty";
@@ -585,13 +637,15 @@ dialog footer .btn:first-child{margin-right:auto}
       const n = document.createElement("div");
       n.className = "b";
       n.style.setProperty("--el", "var(--el-" + c.e + ")");
-      n.innerHTML = '<img src="' + img(c.i) + '" alt="" loading="lazy">' + c.n + ' <span>&times;' + left(c.i) + '</span>';
+      const g = GROUP(c.i);
+      n.innerHTML = '<img src="' + img(GROUP_FACE[g] || c.i) + '" alt="" loading="lazy">' +
+                    (GROUP_NAME[g] || c.n) + ' <span>&times;' + left(c.i) + '</span>';
       b.appendChild(n);
     }
   }
 
   function renderStats(){
-    const owned = Object.keys(state.owned).length;
+    const owned = Object.keys(state.owned).length;       // keyed by resonator, Rover folded to one
     const charges = Object.values(state.owned).reduce((a,b) => a+b, 0);
     const placed = state.teams.reduce((n,t) => n + t.filter(Boolean).length, 0);
     const full = state.teams.filter(t => t.filter(Boolean).length === 3).length;
@@ -635,21 +689,7 @@ dialog footer .btn:first-child{margin-right:auto}
     let d;
     try { d = JSON.parse($("#payload").value); } catch(e){ alert("That is not valid JSON — paste the whole payload, braces included."); return; }
     if (!d || typeof d.owned !== "object" || !Array.isArray(d.teams)){ alert("Payload is missing 'owned' or 'teams'."); return; }
-    const owned = {};
-    for (const [id,n] of Object.entries(d.owned)) if (BY_ID[id] && Number(n) > 0) owned[id] = Math.min(12, Math.round(Number(n)));
-    const teams = d.teams.filter(Array.isArray).map(t => {
-      const row = [null,null,null];
-      for (let i=0;i<3;i++){ const id = t[i]; if (id && owned[id] && !row.includes(id)) row[i] = id; }
-      return row;
-    });
-    state = { owned, teams: teams.length ? teams : [[null,null,null]], seeded:false };
-    // trim placements that exceed charges
-    for (const id of Object.keys(owned)){
-      let over = assignedCount(id) - owned[id];
-      for (let ti = state.teams.length-1; ti >= 0 && over > 0; ti--)
-        for (let i=2;i>=0 && over>0;i--)
-          if (state.teams[ti][i] === id){ state.teams[ti][i] = null; over--; }
-    }
+    state = migrate({ owned: d.owned, teams: d.teams, seeded:false });
     sel = null; commit(); dlg.close();
   };
   document.addEventListener("keydown", e => { if (e.key === "Escape" && sel){ sel = null; renderGrid(); } });

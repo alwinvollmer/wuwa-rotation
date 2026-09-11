@@ -10,6 +10,7 @@ Mark which resonators you own, set how many **charges** (uses) each one has this
 
 - **Roster** — all resonators, portraits included. Click a portrait to own it (starts at 1 charge); the `−` / `+` stepper sets charges from 0 to 12. Dropping to 0 removes the resonator and clears it from every team.
 - **Teams** — three slots each. Drag a portrait from the roster into a slot, drag a slot onto another slot to swap, or click a portrait and then click a slot (works on touch). A resonator cannot appear twice in one team, and cannot be placed with no charges left.
+- **Rover counts once** — the four Rover forms share a single charge pool, and only one form can sit in a team. Own or step any of them and all four follow.
 - **Reorder teams** — drag a team by its header, or use the `‹` `›` buttons.
 - **Charges left** — everything owned but not yet placed, so you can see what is still spendable.
 - **Filters** — search, element, rarity, owned only, has charges.
