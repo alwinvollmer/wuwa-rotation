@@ -31,7 +31,8 @@ The first visit loads an example roster so the board is not empty; **Start empty
 | --- | --- |
 | `index.html` | The whole app — markup, styles and logic, no build step |
 | `chars.js` | Generated character list (`id`, `name`, `element`, `weapon`, `stars`) |
-| `img/<id>.webp` | Generated portraits, 192 px |
+| `img/<id>.webp` | Generated square art, 192 px — used in the detail modal |
+| `img/roster/<id>.webp` | Generated tall art, 200 px wide — used in the roster, team slots and bench (all four Rover forms share `rover.webp`, as upstream does) |
 | `teams.js` | Generated team recommendations (152 teams) |
 | `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
 | `tools/update-teams.py` | Regenerates `teams.js` |

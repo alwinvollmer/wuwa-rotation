@@ -13,7 +13,9 @@ import urllib.request
 
 SOURCE = "https://arabwuwa.com/data/characters.json"
 ORIGIN = "https://arabwuwa.com"
-SIZE = 192
+ROSTER = "/images/characters-filter/roster/340w/{name}.webp"
+SIZE = 192          # square art (detail modal)
+ROSTER_SIZE = 200   # tall art (roster grid, team slots, bench)
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UA = {"User-Agent": "Mozilla/5.0 (resonator-rotation updater)"}
 
@@ -57,7 +59,32 @@ def main() -> int:
         added += 1
         print(f"  + {cid} ({out.stat().st_size // 1024} KB)")
 
+    # Tall roster art. The four Rover forms share one image upstream, which is
+    # also how this app treats them: one resonator, one charge pool.
+    roster_dir = img_dir / "roster"
+    roster_dir.mkdir(exist_ok=True)
+    roster_kept, roster_added = set(), 0
+    for name in sorted({("rover" if c["id"].startswith("rover-") else c["id"]) for c in chars}):
+        roster_kept.add(name + ".webp")
+        out = roster_dir / f"{name}.webp"
+        if out.exists():
+            continue
+        try:
+            raw = get(ORIGIN + ROSTER.format(name=name))
+        except Exception as exc:
+            print(f"  ! no roster art for {name}: {exc}", file=sys.stderr)
+            continue
+        tmp = out.with_suffix(".tmp")
+        tmp.write_bytes(raw)
+        im = Image.open(tmp)
+        im.thumbnail((ROSTER_SIZE, ROSTER_SIZE * 2))
+        im.save(out, "WEBP", quality=82)
+        tmp.unlink()
+        roster_added += 1
+        print(f"  + roster/{name} ({out.stat().st_size // 1024} KB)")
+
     stale = [p for p in img_dir.glob("*.webp") if p.name not in kept]
+    stale += [p for p in roster_dir.glob("*.webp") if p.name not in roster_kept]
     for p in stale:
         print(f"  - {p.name} (no longer listed)")
 
@@ -67,7 +94,8 @@ def main() -> int:
         "const CHARS=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n",
         encoding="utf-8",
     )
-    print(f"wrote chars.js ({len(data)} entries), {added} new portrait(s), {len(stale)} stale")
+    print(f"wrote chars.js ({len(data)} entries), {added} new square + "
+          f"{roster_added} new roster portrait(s), {len(stale)} stale")
     return 0
 
 
