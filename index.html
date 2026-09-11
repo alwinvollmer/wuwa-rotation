@@ -52,8 +52,10 @@ button{cursor:pointer; background:none; border:none}
 /* ---------- top bar ---------- */
 .topbar{
   position:sticky; top:0; z-index:30;
-  background:linear-gradient(var(--panel),var(--panel) 70%,transparent);
+  background:var(--panel);
+  backdrop-filter:blur(8px);
   border-bottom:1px solid var(--edge);
+  box-shadow:0 14px 24px -22px #000, 0 1px 0 0 color-mix(in srgb,var(--gold) 12%,transparent) inset;
   padding:14px 16px 12px;
   display:flex; flex-wrap:wrap; gap:14px 18px; align-items:flex-end;
 }
