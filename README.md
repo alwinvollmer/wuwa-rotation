@@ -54,6 +54,7 @@ The first visit loads an example roster so the board is not empty; **Reset all**
 | `sequences.js` | Generated sequence damage curves |
 | `tools/update-weapons.py` | Regenerates `weapons.js` |
 | `tools/update-sequences.py` | Regenerates `sequences.js` |
+| `favicon.svg` / `favicon.ico` / `apple-touch-icon.png` | Three team slots, the lead in gold |
 
 ## Updating for a new patch
 
