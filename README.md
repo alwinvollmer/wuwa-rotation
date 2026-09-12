@@ -1,4 +1,4 @@
-# Resonator Rotation
+# Wuthering Waves Team Builder
 
 A small single-page web app for the Wuthering Waves game modes that ask for **many distinct teams**, where each resonator can only be used a limited number of times per season — and where that limit changes from season to season.
 
