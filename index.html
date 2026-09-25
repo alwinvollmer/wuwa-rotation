@@ -134,7 +134,7 @@ button{cursor:pointer; background:none; border:none}
 .card .port{position:relative; display:block; width:100%; height:0; padding-top:133.33%; overflow:hidden; background:var(--panel-2)}
 .card .port img, .card .port video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block; filter:grayscale(.85) brightness(.6); transition:.15s}
 .card.own .port img, .card.own .port video{filter:none}
-video.live{opacity:0; transition:opacity .4s, filter .15s, transform .35s cubic-bezier(.2,.7,.3,1)}
+video.live{opacity:0; transition:opacity .4s, filter .15s}   /* no hover zoom: scaling playing video stutters */
 video.live.shown{opacity:1}
 .card .name{
   display:block; font-size:.7rem; font-weight:600; letter-spacing:.01em; padding:4px 5px 3px;
@@ -150,7 +150,6 @@ video.live.shown{opacity:1}
   border-color:color-mix(in srgb,var(--el) 70%,var(--edge));
   box-shadow:0 12px 22px -16px var(--el), 0 0 0 1px color-mix(in srgb,var(--el) 25%,transparent);
 }
-.card.own:hover .port img{transform:scale(1.05)}
 .card .port img{transition:transform .35s cubic-bezier(.2,.7,.3,1), filter .2s}
 .card:active{transform:translateY(-1px) scale(.99)}
 .card.spent .port img{filter:grayscale(.9) brightness(.45)}
@@ -269,7 +268,6 @@ video.live.shown{opacity:1}
 .slot.over{border-color:var(--gold); border-style:solid; background:color-mix(in srgb,var(--gold) 18%,var(--panel-2))}
 .slot.deny{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 14%,var(--panel-2))}
 .slot.filled{border-style:solid; border-color:color-mix(in srgb,var(--el) 50%,var(--edge)); background:var(--slot)}
-.slot.filled:hover img, .slot.filled:hover video{transform:scale(1.04)}
 .slot img{transition:transform .35s cubic-bezier(.2,.7,.3,1)}
 .slot.pop{animation:pop .38s cubic-bezier(.2,.7,.3,1)}
 .slot.over{transform:scale(1.02)}
@@ -460,6 +458,83 @@ dialog footer .btn:first-child{margin-right:auto}
   *{transition:none!important; animation:none!important}
   .boot .card,.boot .team,.boot .panel,.rec,.team .match > *,.team .match::before{opacity:1!important; transform:none!important}
 }
+
+/* ================= FX layer (additive; the base design above stays the spec) =================
+   Motion only on transform/opacity; one fixed background layer; backdrop-filter only on the
+   top bar + modal (many blurred layers stuttered on the 4K monitor before). */
+@property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.fx-bg{position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden}
+.fx-bg i{position:absolute; width:70vmax; height:70vmax; border-radius:50%; will-change:transform; opacity:.55}
+.fx-bg i:nth-child(1){left:-28vmax; top:-32vmax; background:radial-gradient(closest-side,color-mix(in srgb,var(--gold) 26%,transparent),transparent); animation:fxd1 44s ease-in-out infinite alternate}
+.fx-bg i:nth-child(2){right:-30vmax; top:0; background:radial-gradient(closest-side,color-mix(in srgb,var(--cyan) 24%,transparent),transparent); animation:fxd2 52s ease-in-out infinite alternate}
+.fx-bg i:nth-child(3){left:10vmax; bottom:-48vmax; background:radial-gradient(closest-side,color-mix(in srgb,var(--el-electro) 22%,transparent),transparent); animation:fxd3 60s ease-in-out infinite alternate}
+.fx-bg::after{content:""; position:absolute; inset:0;
+  background-image:linear-gradient(color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 1px);
+  background-size:44px 44px; mask-image:linear-gradient(180deg,#000,transparent 65%)}
+@keyframes fxd1{to{transform:translate(18vmax,14vmax) scale(1.15)}}
+@keyframes fxd2{to{transform:translate(-16vmax,20vmax) scale(.9)}}
+@keyframes fxd3{to{transform:translate(14vmax,-18vmax) scale(1.2)}}
+
+/* top bar: glass + shimmering title + gradient hairline */
+.topbar{background:color-mix(in srgb,var(--panel) 72%,transparent); backdrop-filter:blur(14px) saturate(1.3)}
+.topbar::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),var(--cyan),transparent); opacity:.7}
+.brand h1 span{background:linear-gradient(100deg,var(--gold) 0%,var(--gold) 40%,#fff6df 50%,var(--cyan) 58%,var(--gold) 68%,var(--gold) 100%);
+  background-size:250% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:fxshine 7s linear infinite}
+@keyframes fxshine{from{background-position:100% 0} to{background-position:-150% 0}}
+.stat{transition:background .2s}
+.stat:hover{background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--gold) 8%,transparent))}
+
+/* buttons + chips: light sweep on hover */
+.btn,.chip{position:relative; overflow:hidden}
+.btn::after,.chip::after{content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg,transparent 30%,color-mix(in srgb,#fff 22%,transparent) 50%,transparent 70%); transform:translateX(-120%); transition:transform .5s}
+.btn:hover::after,.chip:hover::after{transform:translateX(120%)}
+.btn.primary{background:linear-gradient(120deg,var(--gold),color-mix(in srgb,var(--gold) 70%,var(--cyan)))}
+
+/* panels: gradient hairline + accent bar before the heading */
+.panel{box-shadow:0 18px 40px -30px #000}
+.panel:not(.roster){position:relative}   /* the roster is sticky (already positioned) - don't override it */
+.panel::before{content:""; position:absolute; left:14px; right:14px; top:-1px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),var(--cyan),transparent); opacity:.65; pointer-events:none}
+.panel > header h2{display:flex; align-items:center; gap:8px}
+.panel > header h2::before{content:""; width:3px; height:.95em; background:linear-gradient(180deg,var(--gold),var(--cyan)); box-shadow:0 0 10px -2px var(--gold)}
+
+/* roster cards: 3D tilt + element spotlight + holo sweep (owned only) */
+.grid{perspective:900px}
+.card{--rx:0deg; --ry:0deg; --mx:50%; --my:30%; transform-style:preserve-3d}
+.card.own.tilt{transform:translateY(-3px) rotateX(var(--ry)) rotateY(var(--rx)); transition:transform .06s linear, box-shadow .16s, border-color .16s}
+.card .port::after{content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s;
+  background:radial-gradient(160px circle at var(--mx) var(--my),color-mix(in srgb,var(--el) 38%,transparent),transparent 65%),
+             linear-gradient(115deg,transparent 30%,color-mix(in srgb,#fff 18%,transparent) 46%,color-mix(in srgb,var(--el) 22%,transparent) 52%,transparent 66%);
+  background-size:100% 100%,250% 250%; background-position:0 0,var(--mx) var(--my); mix-blend-mode:screen}
+.card.own:hover .port::after{opacity:1}
+.card.s5 .rar{background:linear-gradient(100deg,var(--shade) 30%,color-mix(in srgb,var(--gold) 45%,var(--shade)) 50%,var(--shade) 70%); background-size:250% 100%; animation:fxshine 4.5s linear infinite}
+.card.own:hover{box-shadow:0 16px 28px -14px var(--el), 0 0 0 1px color-mix(in srgb,var(--el) 35%,transparent)}
+
+/* teams: lift, running border on hover, breathing glow when full */
+.team{transition:transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .25s}
+.team:hover{transform:translateY(-2px); box-shadow:0 18px 34px -24px #000}
+.team::after{content:""; position:absolute; inset:-1px; border-radius:var(--r); padding:1px; pointer-events:none; opacity:0; transition:opacity .3s;
+  background:conic-gradient(from var(--ang),transparent 0 60%,var(--gold),var(--cyan),transparent 92%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude}
+.team:hover::after{opacity:1; animation:fxrot 3.2s linear infinite}
+@keyframes fxrot{to{--ang:360deg}}
+.team.full{animation:fxfull 3.6s ease-in-out infinite}
+@keyframes fxfull{50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--ok) 35%,transparent), 0 0 26px -10px var(--ok)}}
+.team.prem.full{animation:none}
+.slot.filled{box-shadow:inset 0 -26px 30px -26px var(--el)}
+.slot.filled figcaption{background:linear-gradient(90deg,color-mix(in srgb,var(--el) 22%,var(--panel-2)),var(--panel-2))}
+.slot.over{animation:fxover 1s ease-in-out infinite}
+@keyframes fxover{50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 35%,transparent), 0 0 22px -6px var(--gold)}}
+.slot:not(.filled){background-image:repeating-linear-gradient(135deg,transparent 0 10px,color-mix(in srgb,var(--ink) 3%,transparent) 10px 20px)}
+.addteam{transition:.2s}
+.addteam:hover{box-shadow:inset 0 0 40px -18px var(--gold)}
+
+/* bench + modal */
+.bench .b{transition:transform .15s, box-shadow .15s}
+.bench .b:hover{transform:translateY(-2px); box-shadow:0 6px 14px -8px var(--el)}
+dialog{background:color-mix(in srgb,var(--panel) 88%,transparent); backdrop-filter:blur(14px); box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 1px color-mix(in srgb,var(--gold) 20%,transparent)}
+.char-head img{box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--el),0 8px 22px -6px var(--el)}
+.rec:hover{border-color:color-mix(in srgb,var(--gold) 40%,var(--edge))}
 </style>
 
 <div class="topbar">
@@ -1367,5 +1442,30 @@ dialog footer .btn:first-child{margin-right:auto}
     render();
   };
   window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+<script>
+/* FX: ambient background layer + card tilt/spotlight. Separate from the app code on purpose. */
+(() => {
+  const bg = document.createElement("div"); bg.className = "fx-bg"; bg.setAttribute("aria-hidden", "true");
+  bg.innerHTML = "<i></i><i></i><i></i>"; document.body.prepend(bg);
+  if (!matchMedia("(pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let raf = 0, last = null;
+  document.addEventListener("pointermove", e => {
+    const c = e.target.closest?.(".card.own");
+    if (last && last !== c) { last.classList.remove("tilt"); last.style.removeProperty("--rx"); last.style.removeProperty("--ry"); }
+    last = c;
+    if (!c || document.querySelector(".dragging")) return;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+      c.classList.add("tilt");
+      c.style.setProperty("--rx", `${(px - 0.5) * 14}deg`);
+      c.style.setProperty("--ry", `${(0.5 - py) * 12}deg`);
+      c.style.setProperty("--mx", `${px * 100}%`);
+      c.style.setProperty("--my", `${py * 100}%`);
+    });
+  });
 })();
 </script>
