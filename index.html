@@ -132,8 +132,10 @@ button{cursor:pointer; background:none; border:none}
   padding:0; text-align:left; overflow:hidden; transition:.12s; display:block; width:100%;
 }
 .card .port{position:relative; display:block; width:100%; height:0; padding-top:133.33%; overflow:hidden; background:var(--panel-2)}
-.card .port img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block; filter:grayscale(.85) brightness(.6); transition:.15s}
-.card.own .port img{filter:none}
+.card .port img, .card .port video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; display:block; filter:grayscale(.85) brightness(.6); transition:.15s}
+.card.own .port img, .card.own .port video{filter:none}
+video.live{opacity:0; transition:opacity .4s, filter .15s, transform .35s cubic-bezier(.2,.7,.3,1)}
+video.live.shown{opacity:1}
 .card .name{
   display:block; font-size:.7rem; font-weight:600; letter-spacing:.01em; padding:4px 5px 3px;
   color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -267,12 +269,12 @@ button{cursor:pointer; background:none; border:none}
 .slot.over{border-color:var(--gold); border-style:solid; background:color-mix(in srgb,var(--gold) 18%,var(--panel-2))}
 .slot.deny{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 14%,var(--panel-2))}
 .slot.filled{border-style:solid; border-color:color-mix(in srgb,var(--el) 50%,var(--edge)); background:var(--slot)}
-.slot.filled:hover img{transform:scale(1.04)}
+.slot.filled:hover img, .slot.filled:hover video{transform:scale(1.04)}
 .slot img{transition:transform .35s cubic-bezier(.2,.7,.3,1)}
 .slot.pop{animation:pop .38s cubic-bezier(.2,.7,.3,1)}
 .slot.over{transform:scale(1.02)}
 .slot figure{margin:0; width:100%; height:100%; display:flex; flex-direction:column}
-.slot img{width:100%; flex:1; object-fit:cover; object-position:top center; min-height:0}
+.slot img, .slot video{width:100%; flex:1; object-fit:cover; object-position:top center; min-height:0}
 .slot figcaption{
   font-size:.66rem; font-weight:600; padding:2px 4px; text-align:center; background:var(--panel-2);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid color-mix(in srgb,var(--el) 40%,var(--edge));
@@ -538,6 +540,7 @@ dialog footer .btn:first-child{margin-right:auto}
 <script src="teams.js"></script>
 <script src="weapons.js"></script>
 <script src="sequences.js"></script>
+<script src="live.js"></script>
 <script>
 (function(){
   "use strict";
@@ -594,6 +597,31 @@ dialog footer .btn:first-child{margin-right:auto}
   }
   const img = id => "img/" + id + ".webp";                                         // square art: detail modal
   const portrait = id => "img/roster/" + (isShared(id) ? "rover" : id) + ".webp";  // tall art: roster, teams, bench
+  // animated portrait (baked loop of the game's own Spine portrait, tools/update-live.py) where one
+  // exists, static roster art otherwise. Videos start only when on screen (liveObs below).
+  const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const LIVE_MAP = typeof LIVE === "object" ? LIVE : {};
+  const portraitHTML = (id, lazy) => LIVE_MAP[id] && !REDUCED_MOTION
+    ? '<video class="live" data-live="' + LIVE_MAP[id] + '" muted loop playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>'
+    : '<img src="' + portrait(id) + '" alt=""' + (lazy ? ' loading="lazy"' : '') + ' draggable="false">';
+  // Play only on-screen loops, unload the rest (Chrome caps active media players at ~75 and the
+  // roster alone has ~60 cards). New videos are found by a MutationObserver, so none of the
+  // render paths need to know about this.
+  const liveObs = new IntersectionObserver(entries => entries.forEach(en => {
+    const v = en.target;
+    if (en.isIntersecting) {
+      if (!v.getAttribute("src")) {
+        v.src = v.dataset.live;
+        v.addEventListener("loadeddata", () => v.classList.add("shown"), { once: true });
+      }
+      v.muted = true; v.play().catch(() => {});
+    } else if (v.getAttribute("src")) { v.pause(); v.removeAttribute("src"); v.load(); v.classList.remove("shown"); }
+  }), { rootMargin: "200px" });
+  const unload = v => { liveObs.unobserve(v); if (v.getAttribute("src")) { v.pause(); v.removeAttribute("src"); v.load(); } };
+  new MutationObserver(muts => muts.forEach(m => {
+    m.addedNodes.forEach(n => n.nodeType === 1 && (n.matches("video.live") ? [n] : n.querySelectorAll("video.live")).forEach(v => liveObs.observe(v)));
+    m.removedNodes.forEach(n => n.nodeType === 1 && (n.matches("video.live") ? [n] : n.querySelectorAll("video.live")).forEach(unload));
+  })).observe(document.body, { childList: true, subtree: true });
   const SEED_OWNED = {"camellya":2,"jinhsi":1,"shorekeeper":2,"changli":1,"carlotta":1,"verina":3,"sanhua":2,"baizhi":2,"yangyang":2,"mortefi":1,"rover":1};
   const SEED_TEAMS = [["jinhsi","verina","sanhua"],["camellya","shorekeeper",null],[null,null,null]];
 
@@ -775,7 +803,7 @@ dialog footer .btn:first-child{margin-right:auto}
       card.style.setProperty("--i", g.childElementCount);
       card.innerHTML =
         '<div class="port">' +
-          '<img src="' + portrait(c.i) + '" alt="" loading="lazy" draggable="false">' +
+          portraitHTML(c.i, true) +
           '<i class="el"></i><b class="rar">' + c.s + '★</b>' +
           (own ? '<b class="left num">' + rest + '/' + n + '</b>' : '') +
           (isShared(c.i) ? '<b class="shared" title="Rover counts as one resonator: all forms share these charges">shared</b>' : '') +
@@ -927,7 +955,7 @@ dialog footer .btn:first-child{margin-right:auto}
         if (id){
           const c = BY_ID[id];
           slot.style.setProperty("--el", "var(--el-" + c.e + ")");
-          slot.innerHTML = '<figure><img src="' + portrait(id) + '" alt="" draggable="false">' +
+          slot.innerHTML = '<figure>' + portraitHTML(id) +
                            '<figcaption>' + c.n + '</figcaption></figure>' +
                            '<button class="info" title="Recommended teams for ' + c.n + '">i</button>' +
                            '<button class="x" title="Remove from team">&#10005;</button>';
