@@ -509,6 +509,17 @@ dialog footer .btn:first-child{margin-right:auto}
 .card.own:hover .port::after{opacity:1}
 .card.s5 .rar{background:linear-gradient(100deg,var(--shade) 30%,color-mix(in srgb,var(--gold) 45%,var(--shade)) 50%,var(--shade) 70%); background-size:250% 100%; animation:fxshine 4.5s linear infinite}
 .card.own:hover{box-shadow:0 16px 28px -14px var(--el), 0 0 0 1px color-mix(in srgb,var(--el) 35%,transparent)}
+/* same tilt + spotlight for the characters placed in teams */
+.slots{perspective:800px}
+.slot.filled{--rx:0deg; --ry:0deg; --mx:50%; --my:30%; transform-style:preserve-3d}
+.slot.filled.tilt{transform:translateY(-2px) rotateX(var(--ry)) rotateY(var(--rx)); transition:transform .06s linear, box-shadow .16s, border-color .16s;
+  box-shadow:inset 0 -26px 30px -26px var(--el), 0 14px 24px -14px var(--el)}
+.slot.filled::after{content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s; z-index:1;
+  background:radial-gradient(140px circle at var(--mx) var(--my),color-mix(in srgb,var(--el) 38%,transparent),transparent 65%),
+             linear-gradient(115deg,transparent 30%,color-mix(in srgb,#fff 18%,transparent) 46%,color-mix(in srgb,var(--el) 22%,transparent) 52%,transparent 66%);
+  background-size:100% 100%,250% 250%; background-position:0 0,var(--mx) var(--my); mix-blend-mode:screen}
+.slot.filled:hover::after{opacity:1}
+.slot .info, .slot .x{z-index:2}
 
 /* teams: lift, running border on hover, breathing glow when full */
 .team{transition:transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .25s}
@@ -1453,16 +1464,17 @@ dialog{background:color-mix(in srgb,var(--panel) 88%,transparent); backdrop-filt
   if (!matchMedia("(pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   let raf = 0, last = null;
   document.addEventListener("pointermove", e => {
-    const c = e.target.closest?.(".card.own");
+    const c = e.target.closest?.(".card.own, .slot.filled");
     if (last && last !== c) { last.classList.remove("tilt"); last.style.removeProperty("--rx"); last.style.removeProperty("--ry"); }
     last = c;
-    if (!c || document.querySelector(".dragging")) return;
+    if (!c || document.querySelector(".dragging, .slot.over")) return;
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
       const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
       c.classList.add("tilt");
-      c.style.setProperty("--rx", `${(px - 0.5) * 14}deg`);
-      c.style.setProperty("--ry", `${(0.5 - py) * 12}deg`);
+      const k = c.classList.contains("slot") ? 0.8 : 1;   // slots are taller: a touch less tilt
+      c.style.setProperty("--rx", `${(px - 0.5) * 14 * k}deg`);
+      c.style.setProperty("--ry", `${(0.5 - py) * 12 * k}deg`);
       c.style.setProperty("--mx", `${px * 100}%`);
       c.style.setProperty("--my", `${py * 100}%`);
     });
