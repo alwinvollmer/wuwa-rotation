@@ -683,7 +683,7 @@ dialog{background:color-mix(in srgb,var(--panel) 88%,transparent); backdrop-filt
   }
   const img = id => "img/" + id + ".webp";                                         // square art: detail modal
   const portrait = id => "img/roster/" + (isShared(id) ? "rover" : id) + ".webp";  // tall art: roster, teams, bench
-  // animated portrait (baked loop of the game's own Spine portrait, tools/update-live.py) where one
+  // animated portrait (baked loop of the game's own Spine portrait, tools/sync-assets.py) where one
   // exists, static roster art otherwise. Videos start only when on screen (liveObs below).
   const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const LIVE_MAP = typeof LIVE === "object" ? LIVE : {};

@@ -48,7 +48,8 @@ The first visit loads an example roster so the board is not empty; **Reset all**
 | `img/<id>.webp` | Generated square art, 192 px — used in the detail modal |
 | `img/roster/<id>.webp` | Generated tall art, 200 px wide — used in the roster, team slots and bench (all four Rover forms share `rover.webp`, as upstream does) |
 | `teams.js` | Generated team recommendations (152 teams) |
-| `tools/update-characters.py` | Regenerates `chars.js` and `img/` |
+| `img/live/<id>.webm` + `live.js` | Generated animated roster portraits (WebM VP9 + alpha, 176×220) |
+| `tools/sync-assets.py` | Regenerates `chars.js`, `img/`, `img/live/` and `live.js` from the shared asset bundle |
 | `weapons.js` | Generated signature/standard weapon factors |
 | `tools/update-teams.py` | Regenerates `teams.js` |
 | `sequences.js` | Generated sequence damage curves |
@@ -58,17 +59,17 @@ The first visit loads an example roster so the board is not empty; **Reset all**
 
 ## Updating for a new patch
 
-Character data and portraits come from [arabwuwa.com](https://arabwuwa.com/characters/), which serves them as a static JSON file:
+Character data and portraits come from [arabwuwa.com](https://arabwuwa.com/characters/) and the animated portraits from the game's own Spine portraits (via [nanoka](https://ww.nanoka.cc)). Both are crawled and baked by a separate local asset project (`game-assets`, shared with other tools); this repo only syncs from its bundle:
 
 ```bash
-python3 tools/update-characters.py
+python3 tools/sync-assets.py        # after `./assets.py wuwa loops` in game-assets
 python3 tools/update-teams.py
 python3 tools/update-weapons.py
 python3 tools/update-sequences.py
 git add chars.js teams.js weapons.js sequences.js img && git commit -m "data: update for <version>" && git push
 ```
 
-Two things the script handles that are easy to get wrong by hand:
+Things the scripts handle that are easy to get wrong by hand:
 
 - The image path must be taken from each record's `images.small`. Most portraits live under `/images/characters-filter/`, but the four Rovers live under `/images/characters-profile/` — a constructed path 404s for them.
 - The JSON's first entry is a `__meta` reference object, not a character.
